@@ -1,0 +1,1 @@
+Is a tool for load testing. Creation and send a multitude of HTTP requests to simulate real traffic
