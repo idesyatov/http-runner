@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"sync"
 	"time"
-
 	"github.com/idesyatov/http-runner/pkg/httpclient"
 )
 
