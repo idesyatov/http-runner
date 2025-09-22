@@ -15,10 +15,10 @@ build: $(GO_FILES)
 	@mkdir -p $(BUILD_DIR)
 	go build -o $(BUILD_DIR)/$(BINARY_NAME) $(SOURCE_DIR)
 
-# Run the binary
+# Run the binary with arguments
 run: build
 	@echo "Running the binary..."
-	@$(BUILD_DIR)/$(BINARY_NAME) --help
+	@$(BUILD_DIR)/$(BINARY_NAME) $(ARGS)
 
 # Clean up build artifacts
 clean:
@@ -30,6 +30,8 @@ help:
 	@echo "Makefile for HTTPRunner"
 	@echo "Usage:"
 	@echo "  make build    - Build the binary"
-	@echo "  make run      - Build and run the binary"
+	@echo "  make run ARGS='--method GET --url http://example.com --count 10 --verbose' - Build and run the binary with arguments"
 	@echo "  make clean    - Remove build artifacts"
 	@echo "  make help     - Show this help message"
+
+.PHONY: all build run clean help

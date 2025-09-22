@@ -6,29 +6,25 @@ import (
 	"github.com/idesyatov/http-runner/internal/generator"
 	"github.com/idesyatov/http-runner/pkg/httpclient"
 	"log"
-	"os"
-	"strconv"
 )
 
 func main() {
-	// Определение флага verbose
+	// Определение флагов
+	method := flag.String("method", "GET", "HTTP method to use (e.g., GET, POST)")
+	url := flag.String("url", "", "Target URL")
+	count := flag.Int("count", 1, "Number of requests to send")
 	verbose := flag.Bool("verbose", false, "Enable verbose output")
+
+	// Парсинг флагов
 	flag.Parse()
 
-	if len(os.Args) < 4 {
-		log.Fatal("Usage: http-runner <method> <url> <count>")
-	}
-
-	method := os.Args[1]
-	url := os.Args[2]
-	count, err := strconv.Atoi(os.Args[3])
-	if err != nil {
-		log.Fatal("Count must be an integer:", err)
+	if *url == "" {
+		log.Fatal("URL must be provided")
 	}
 
 	cfg := config.NewConfig() // Здесь можно добавить конфигурацию
 	client := httpclient.NewClient(cfg.Timeout)
 	gen := generator.NewGenerator(client)
 
-	gen.GenerateRequests(method, url, count, *verbose) // Передаем флаг в генератор
+	gen.GenerateRequests(*method, *url, *count, *verbose) // Передаем флаги в генератор
 }
