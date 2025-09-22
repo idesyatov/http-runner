@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
     "github.com/idesyatov/http-runner/internal/config"
     "github.com/idesyatov/http-runner/internal/generator"
     "github.com/idesyatov/http-runner/pkg/httpclient"
@@ -10,6 +11,10 @@ import (
 )
 
 func main() {
+    // Определение флага verbose
+    verbose := flag.Bool("verbose", false, "Enable verbose output")
+    flag.Parse()
+
     if len(os.Args) < 4 {
         log.Fatal("Usage: http-runner <method> <url> <count>")
     }
@@ -25,5 +30,5 @@ func main() {
     client := httpclient.NewClient(cfg.Timeout)
     gen := generator.NewGenerator(client)
 
-    gen.GenerateRequests(method, url, count)
+    gen.GenerateRequests(method, url, count, *verbose) // Передаем флаг в генератор
 }
