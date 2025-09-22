@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"sync"
 	"time"
-
 	"github.com/idesyatov/http-runner/pkg/httpclient"
 )
 
@@ -47,7 +46,6 @@ func (g *Generator) GenerateRequests(method, url string, count int, verbose bool
 			mu.Unlock()
 
 			// Вывод статуса ответа только при включенном verbose
-			fmt.Println("VERBOUSE:", verbose)
 			if verbose {
 				if err != nil {
 					fmt.Println("Error:", err)
