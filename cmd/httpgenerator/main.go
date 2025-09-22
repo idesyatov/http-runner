@@ -2,33 +2,33 @@ package main
 
 import (
 	"flag"
-    "github.com/idesyatov/http-runner/internal/config"
-    "github.com/idesyatov/http-runner/internal/generator"
-    "github.com/idesyatov/http-runner/pkg/httpclient"
-    "log"
-    "os"
-    "strconv"
+	"github.com/idesyatov/http-runner/internal/config"
+	"github.com/idesyatov/http-runner/internal/generator"
+	"github.com/idesyatov/http-runner/pkg/httpclient"
+	"log"
+	"os"
+	"strconv"
 )
 
 func main() {
-    // Определение флага verbose
-    verbose := flag.Bool("verbose", false, "Enable verbose output")
-    flag.Parse()
+	// Определение флага verbose
+	verbose := flag.Bool("verbose", false, "Enable verbose output")
+	flag.Parse()
 
-    if len(os.Args) < 4 {
-        log.Fatal("Usage: http-runner <method> <url> <count>")
-    }
+	if len(os.Args) < 4 {
+		log.Fatal("Usage: http-runner <method> <url> <count>")
+	}
 
-    method := os.Args[1]
-    url := os.Args[2]
-    count, err := strconv.Atoi(os.Args[3])
-    if err != nil {
-        log.Fatal("Count must be an integer:", err)
-    }
+	method := os.Args[1]
+	url := os.Args[2]
+	count, err := strconv.Atoi(os.Args[3])
+	if err != nil {
+		log.Fatal("Count must be an integer:", err)
+	}
 
-    cfg := config.NewConfig() // Здесь можно добавить конфигурацию
-    client := httpclient.NewClient(cfg.Timeout)
-    gen := generator.NewGenerator(client)
+	cfg := config.NewConfig() // Здесь можно добавить конфигурацию
+	client := httpclient.NewClient(cfg.Timeout)
+	gen := generator.NewGenerator(client)
 
-    gen.GenerateRequests(method, url, count, *verbose) // Передаем флаг в генератор
+	gen.GenerateRequests(method, url, count, *verbose) // Передаем флаг в генератор
 }
