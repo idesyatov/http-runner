@@ -14,6 +14,7 @@ func main() {
 	url := flag.String("url", "", "Target URL")
 	count := flag.Int("count", 1, "Number of requests to send")
 	verbose := flag.Bool("verbose", false, "Enable verbose output")
+	concurrency := flag.Int("concurrency", 10, "Number of concurrent requests (default is 10)")
 
 	// Parsing flags
 	flag.Parse()
@@ -26,5 +27,6 @@ func main() {
 	client := httpclient.NewClient(cfg.Timeout)
 	gen := generator.NewGenerator(client)
 
-	gen.GenerateRequests(*method, *url, *count, *verbose) // We pass flags to the generator
+	// Передаем флаг параллелизма в генератор
+	gen.GenerateRequests(*method, *url, *count, *verbose, *concurrency) 
 }
