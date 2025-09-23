@@ -1,7 +1,7 @@
 # Makefile for HTTPRunner
 
 # Variables
-BINARY_NAME = httpr-unner
+BINARY_NAME = httpr-runner
 SOURCE_DIR = ./cmd/httpgenerator
 BUILD_DIR = ./bin
 GO_FILES = $(wildcard $(SOURCE_DIR)/*.go)

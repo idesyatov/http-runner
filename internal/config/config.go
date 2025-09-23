@@ -8,6 +8,6 @@ type Config struct {
 
 func NewConfig() *Config {
 	return &Config{
-		Timeout: 5 * time.Second, // Установите таймаут по умолчанию
+		Timeout: 5 * time.Second, // default timeout
 	}
 }

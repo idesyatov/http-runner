@@ -45,7 +45,7 @@ func (g *Generator) GenerateRequests(method, url string, count int, verbose bool
 			}
 			mu.Unlock()
 
-			// Вывод статуса ответа только при включенном verbose
+			// Output response status only when verbose is enabled
 			if verbose {
 				if err != nil {
 					fmt.Println("Error:", err)
@@ -57,10 +57,13 @@ func (g *Generator) GenerateRequests(method, url string, count int, verbose bool
 	}
 	wg.Wait()
 
-	// Вывод статистики
+	// Statistics output
 	averageResponseTime := totalResponseTime.Seconds() / float64(count)
 	successRate := (float64(successCount) / float64(count)) * 100
 
+	fmt.Printf("Request url: \033[32m%s\033[0m\n", url)
+	fmt.Printf("Request method: %s\n", method)
+	fmt.Printf("Request count: %d\n", count)
 	fmt.Printf("Average Response Time: %.6f seconds\n", averageResponseTime)
 	fmt.Printf("Minimum Response Time: %.6f seconds\n", minResponseTime.Seconds())
 	fmt.Printf("Maximum Response Time: %.6f seconds\n", maxResponseTime.Seconds())
