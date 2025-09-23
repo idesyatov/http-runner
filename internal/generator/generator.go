@@ -84,11 +84,13 @@ func (g *Generator) GenerateRequests(method, url string, count int, verbose bool
 	fmt.Printf("Minimum Response Time: %.6f seconds\n", minResponseTime.Seconds())
 	fmt.Printf("Maximum Response Time: %.6f seconds\n", maxResponseTime.Seconds())
 	fmt.Printf("Success Rate: %.2f%%\n", successRate)
-	fmt.Printf("Total Duration: %.6f seconds\n", totalDuration.Seconds())
 
 	// Output percentage of status codes
 	for code, count := range statusCodes {
 		percentage := (float64(count) / float64(count)) * 100 // Corrected
 		fmt.Printf("Status Code %d: %.2f%%\n", code, percentage)
 	}
+
+	// Display total execution time
+	fmt.Printf("Total Duration: %.6f seconds\n", totalDuration.Seconds())
 }

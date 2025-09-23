@@ -12,7 +12,7 @@
 You can install http-runner using the following command:
 
 ```sh
-go install github.com/idesyatov/http-request@latest
+go install github.com/idesyatov/http-runner@latest
 ```
 
 Also download, modify and compile it yourself as you wish
