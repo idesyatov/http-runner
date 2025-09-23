@@ -27,6 +27,5 @@ func main() {
 	client := httpclient.NewClient(cfg.Timeout)
 	gen := generator.NewGenerator(client)
 
-	// Передаем флаг параллелизма в генератор
 	gen.GenerateRequests(*method, *url, *count, *verbose, *concurrency) 
 }
