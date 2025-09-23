@@ -2,14 +2,19 @@ package main
 
 import (
 	"flag"
+	"fmt"
+	"log"
 	"github.com/idesyatov/http-runner/internal/config"
 	"github.com/idesyatov/http-runner/internal/generator"
 	"github.com/idesyatov/http-runner/pkg/httpclient"
-	"log"
 )
+
+const version = "1.0.1"
+const gitUrl = "https://github.com/idesyatov/http-runner"
 
 func main() {
 	// Definition of flags
+	showVersion := flag.Bool("version", false, "Show version")
 	method := flag.String("method", "GET", "HTTP method to use (e.g., GET, POST)")
 	url := flag.String("url", "", "Target URL")
 	count := flag.Int("count", 1, "Number of requests to send")
@@ -18,6 +23,12 @@ func main() {
 
 	// Parsing flags
 	flag.Parse()
+
+	if *showVersion {
+		fmt.Printf("Version: %s\n", version)
+		fmt.Printf("URL: %s\n", gitUrl)
+		return
+	}
 
 	if *url == "" {
 		log.Fatal("URL must be provided")
