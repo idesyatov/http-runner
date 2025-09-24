@@ -25,14 +25,17 @@ http-runner -url "https://example.com"
 # To send 100 GET requests to a specified URL:
 http-runner -url "https://example.com" -count 100
 
-# To send a POST request to a specified URL:
+# To send 10 POST requests to a specified URL:
 http-runner -method "POST" -url "https://example.com/api" -count 10
 
 # To enable verbose output while sending requests:
-http-runner -url "https://example.com" -verbose
+http-runner -url "https://example.com" -count 10 -verbose
 
 # To send 50 concurrent requests to a specified URL:
-http-runner -url "https://example.com" -concurrency 50
+http-runner -url "https://example.com" -count 50 -concurrency 50
+
+# To send a single GET request to a specified URL with custom headers:
+http-runner -url "https://example.com/api" -method "GET" -headers "Authorization: Bearer your_token, Content-Type: application/json"
 
 #TODO
 ```

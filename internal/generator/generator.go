@@ -2,9 +2,9 @@ package generator
 
 import (
 	"fmt"
+	"github.com/idesyatov/http-runner/pkg/httpclient"
 	"sync"
 	"time"
-	"github.com/idesyatov/http-runner/pkg/httpclient"
 )
 
 type Generator struct {
@@ -15,7 +15,7 @@ func NewGenerator(client *httpclient.Client) *Generator {
 	return &Generator{Client: client}
 }
 
-func (g *Generator) GenerateRequests(method, url string, count int, verbose bool, maxConcurrent int) {
+func (g *Generator) GenerateRequests(method, url string, count int, verbose bool, maxConcurrent int, headers map[string]string) {
 	var wg sync.WaitGroup
 	var mu sync.Mutex
 
@@ -41,7 +41,8 @@ func (g *Generator) GenerateRequests(method, url string, count int, verbose bool
 			defer func() { <-semaphore }() // Release semaphore
 
 			start := time.Now()
-			resp, err := g.Client.SendRequest(method, url)
+			// Pass headers to the SendRequest method
+			resp, err := g.Client.SendRequest(method, url, headers)
 			responseTime := time.Since(start)
 
 			mu.Lock()
@@ -78,6 +79,15 @@ func (g *Generator) GenerateRequests(method, url string, count int, verbose bool
 	// Output statistics
 	fmt.Printf("Request URL: \033[32m%s\033[0m\n", url)
 	fmt.Printf("Request Method: %s\n", method)
+
+	// Output headers if they exist
+	if len(headers) > 0 {
+		fmt.Println("Request Headers:")
+		for key, value := range headers {
+			fmt.Printf("  - %s: %s\n", key, value)
+		}
+	}
+
 	fmt.Printf("Request Count: %d\n", count)
 	fmt.Printf("Request Concurrency: %d\n", maxConcurrent)
 	fmt.Printf("Average Response Time: %.6f seconds\n", averageResponseTime)
