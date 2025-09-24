@@ -35,7 +35,8 @@ http-runner -url "https://example.com" -count 10 -verbose
 http-runner -url "https://example.com" -count 50 -concurrency 50
 
 # To send a single GET request to a specified URL with custom headers:
-http-runner -url "https://example.com/api" -method "GET" -headers "Authorization: Bearer your_token, Content-Type: application/json"
+http-runner -url "https://example.com/api" -method "GET" \
+    -headers "Authorization: Bearer your_token, Content-Type: application/json"
 
 #TODO
 ```
