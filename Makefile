@@ -1,7 +1,7 @@
 # Makefile for HTTPRunner
 
 # Variables
-BINARY_NAME = httpr-runner
+BINARY_NAME = http-runner
 SOURCE_DIR = ./
 BUILD_DIR = ./bin
 GO_FILES = $(wildcard $(SOURCE_DIR)/*.go)
