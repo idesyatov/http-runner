@@ -2,11 +2,41 @@
 
 **HTTPRunner** is a powerful tool for load testing HTTP requests, developed in Go. It allows developers and testers to effectively assess the performance of web applications, identify bottlenecks, and ensure stability under high traffic.
 
-## Key Features
+## Usage
+
 - **Load Generation**: Create and send a multitude of HTTP requests to simulate real traffic.
 - **Custom Scenarios**: Ability to create user-defined testing scenarios for various types of requests and parameters.
 - **Performance Reports**: Generate detailed reports on response times, including average, minimum, and maximum response times.
 - **Success Rate Calculation**: Calculate the percentage of successful responses.
+
+### Command-Line Flags
+
+- `-method`: HTTP method to use (e.g., GET, POST). Default is GET.
+- `-url`: Target URL for the requests. This flag is required.
+- `-count`: Number of requests to send. Default is 1.
+- `-verbose`: Enable verbose output for detailed logging.
+- `-concurrency`: Number of concurrent requests to send. Default is 10.
+
+### Examples
+```bash
+# To send a single GET request to a specified URL:
+http-runner -url "https://example.com"
+
+# To send 100 GET requests to a specified URL:
+http-runner -url "https://example.com" -count 100
+
+# To send a POST request to a specified URL:
+http-runner -method "POST" -url "https://example.com/api" -count 10
+
+# To enable verbose output while sending requests:
+http-runner -url "https://example.com" -verbose
+
+# To send 50 concurrent requests to a specified URL:
+http-runner -url "https://example.com" -concurrency 50
+
+#TODO
+```
+
 
 ## Installation
 You can install http-runner using the following command:
