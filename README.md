@@ -16,6 +16,7 @@
 - `-count`: Number of requests to send. Default is 1.
 - `-verbose`: Enable verbose output for detailed logging.
 - `-concurrency`: Number of concurrent requests to send. Default is 10.
+- `-headers`: Comma-separated list of headers in the format key:value.
 
 ### Examples
 ```bash
