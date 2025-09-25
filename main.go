@@ -7,10 +7,7 @@ import (
 	"github.com/idesyatov/http-runner/pkg/httpclient"
 )
 
-type Metadata struct {
-	Version string
-	GitURL  string
-}
+
 
 func main() {
 	metadata := flags.Metadata{
@@ -20,10 +17,20 @@ func main() {
 	
 	cfg := flags.ParseFlags(metadata)
 
-	// Creating a client and generator
-	httpCfg := config.NewConfig() // You can add configuration here
+	httpCfg := config.NewConfig() // You can add configuration here.
 	client := httpclient.NewClient(httpCfg.Timeout)
 	gen := generator.NewGenerator(client)
 
-	gen.GenerateRequests(cfg.Method, cfg.URL, cfg.Count, cfg.Verbose, cfg.Concurrency, cfg.ParsedHeaders)
+	// Create a RequestConfig instance with the necessary parameters.
+	requestConfig := generator.RequestConfig{
+		Method:        cfg.Method,
+		URL:           cfg.URL,
+		Count:         cfg.Count,
+		Verbose:       cfg.Verbose,
+		Concurrency:   cfg.Concurrency,
+		ParsedHeaders: cfg.ParsedHeaders,
+	}
+
+	// Pass the RequestConfig instance to GenerateRequests.
+	gen.GenerateRequests(requestConfig)
 }
