@@ -2,19 +2,23 @@ package flags
 
 import (
 	"flag"
-	"log"
+	"fmt"
+	"os"
 	"strings"
 )
 
 type Config struct {
-	ShowVersion  bool
-	Method       string
-	URL          string
-	Count        int
-	Verbose      bool
-	Concurrency  int
+	ShowVersion   bool
+	Method        string
+	URL           string
+	Count         int
+	Verbose       bool
+	Concurrency   int
 	ParsedHeaders map[string]string
 }
+
+const version = "1.0.2"
+const gitUrl = "https://github.com/idesyatov/http-runner"
 
 func ParseFlags() *Config {
 	// Definition of flags
@@ -29,8 +33,17 @@ func ParseFlags() *Config {
 	// Parsing flags
 	flag.Parse()
 
+	// Display version
+	if *showVersion {
+		fmt.Printf("Version: %s\n", version)
+		fmt.Printf("GitHub: %s\n", gitUrl)
+		os.Exit(0)
+	}
+
+	// Show if the conditions for launch are not met
 	if *url == "" {
-		log.Fatal("URL must be provided")
+		fmt.Println("The URL must be provided. Please use the --help flag for usage instructions.")
+		os.Exit(0)
 	}
 
 	// Parsing headers
@@ -43,18 +56,18 @@ func ParseFlags() *Config {
 				value := strings.TrimSpace(parts[1])
 				parsedHeaders[key] = value
 			} else {
-				log.Printf("Invalid header format: %s", header)
+				fmt.Printf("Invalid header format: %s", header)
 			}
 		}
 	}
 
 	return &Config{
-		ShowVersion:  *showVersion,
-		Method:       *method,
-		URL:          *url,
-		Count:        *count,
-		Verbose:      *verbose,
-		Concurrency:  *concurrency,
+		ShowVersion:   *showVersion,
+		Method:        *method,
+		URL:           *url,
+		Count:         *count,
+		Verbose:       *verbose,
+		Concurrency:   *concurrency,
 		ParsedHeaders: parsedHeaders,
 	}
 }
