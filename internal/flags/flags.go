@@ -17,11 +17,13 @@ type Config struct {
 	ParsedHeaders map[string]string
 }
 
-const version = "1.0.2"
-const gitUrl = "https://github.com/idesyatov/http-runner"
+type Metadata struct {
+	Version string
+	GitURL  string
+}
 
-func ParseFlags() *Config {
-	// Definition of flags
+// DefineFlags defines the flags and returns them as a Config structure.
+func DefineFlags() *Config {
 	showVersion := flag.Bool("version", false, "Show version")
 	method := flag.String("method", "GET", "HTTP method to use (e.g., GET, POST)")
 	url := flag.String("url", "", "Target URL")
@@ -30,44 +32,51 @@ func ParseFlags() *Config {
 	concurrency := flag.Int("concurrency", 10, "Number of concurrent requests (default is 10)")
 	headers := flag.String("headers", "", "Comma-separated list of headers in the format key:value")
 
-	// Parsing flags
 	flag.Parse()
 
-	// Display version
-	if *showVersion {
-		fmt.Printf("Version: %s\n", version)
-		fmt.Printf("GitHub: %s\n", gitUrl)
-		os.Exit(0)
+	return &Config{
+		ShowVersion: *showVersion,
+		Method:      *method,
+		URL:         *url,
+		Count:       *count,
+		Verbose:     *verbose,
+		Concurrency: *concurrency,
+		ParsedHeaders: parseHeaders(*headers),
 	}
+}
 
-	// Show if the conditions for launch are not met
-	if *url == "" {
-		fmt.Println("The URL must be provided. Please use the --help flag for usage instructions.")
-		os.Exit(0)
-	}
-
-	// Parsing headers
+// parseHeaders parses headers from a string and returns them as a map.
+func parseHeaders(headers string) map[string]string {
 	parsedHeaders := make(map[string]string)
-	if *headers != "" {
-		for _, header := range strings.Split(*headers, ",") {
+	if headers != "" {
+		for _, header := range strings.Split(headers, ",") {
 			parts := strings.SplitN(header, ":", 2)
 			if len(parts) == 2 {
 				key := strings.TrimSpace(parts[0])
 				value := strings.TrimSpace(parts[1])
 				parsedHeaders[key] = value
 			} else {
-				fmt.Printf("Invalid header format: %s", header)
+				fmt.Printf("Invalid header format: %s\n", header)
 			}
 		}
 	}
+	return parsedHeaders
+}
 
-	return &Config{
-		ShowVersion:   *showVersion,
-		Method:        *method,
-		URL:           *url,
-		Count:         *count,
-		Verbose:       *verbose,
-		Concurrency:   *concurrency,
-		ParsedHeaders: parsedHeaders,
+// ParseFlags combines flag definition and condition checking.
+func ParseFlags(metadata Metadata) *Config {
+	config := DefineFlags()
+
+	if config.ShowVersion {
+		fmt.Printf("Version: %s\n", metadata.Version)
+		fmt.Printf("GitHub: %s\n", metadata.GitURL)
+		os.Exit(0)
 	}
+
+	if config.URL == "" {
+		fmt.Println("The URL must be provided. Please use the --help flag for usage instructions.")
+		os.Exit(1)
+	}
+
+	return config
 }

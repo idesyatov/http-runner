@@ -7,8 +7,18 @@ import (
 	"github.com/idesyatov/http-runner/pkg/httpclient"
 )
 
+type Metadata struct {
+	Version string
+	GitURL  string
+}
+
 func main() {
-	cfg := flags.ParseFlags()
+	metadata := flags.Metadata{
+		Version: "1.0.2",
+		GitURL:  "https://github.com/idesyatov/http-runner",
+	}
+	
+	cfg := flags.ParseFlags(metadata)
 
 	// Creating a client and generator
 	httpCfg := config.NewConfig() // You can add configuration here
