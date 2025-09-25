@@ -2,9 +2,9 @@ package generator
 
 import (
 	"fmt"
-	"github.com/idesyatov/http-runner/pkg/httpclient"
 	"sync"
 	"time"
+	"github.com/idesyatov/http-runner/pkg/httpclient"
 )
 
 type Generator struct {
