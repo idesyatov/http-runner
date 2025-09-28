@@ -7,19 +7,21 @@ import (
 	"strings"
 )
 
+// Config holds the configuration options for the HTTP client application.
 type Config struct {
-	ShowVersion   bool
-	Method        string
-	URL           string
-	Count         int
-	Verbose       bool
-	Concurrency   int
-	ParsedHeaders map[string]string
+	ShowVersion   bool              // Flag to indicate whether to display the application version.
+	Method        string            // The HTTP method to use for requests (e.g., GET, POST).
+	URL           string            // The target URL for the HTTP requests.
+	Count         int               // The number of requests to send.
+	Verbose       bool              // Flag to enable verbose output for debugging purposes.
+	Concurrency   int               // The number of concurrent requests to be made.
+	ParsedHeaders map[string]string // A map of HTTP headers to include in the requests.
 }
 
+// Metadata contains information about the application version and its source repository.
 type Metadata struct {
-	Version string
-	GitURL  string
+	Version string // The version of the application.
+	GitURL  string // The URL of the application's Git repository.
 }
 
 // DefineFlags defines the flags and returns them as a Config structure.
@@ -35,12 +37,12 @@ func DefineFlags() *Config {
 	flag.Parse()
 
 	return &Config{
-		ShowVersion: *showVersion,
-		Method:      *method,
-		URL:         *url,
-		Count:       *count,
-		Verbose:     *verbose,
-		Concurrency: *concurrency,
+		ShowVersion:   *showVersion,
+		Method:        *method,
+		URL:           *url,
+		Count:         *count,
+		Verbose:       *verbose,
+		Concurrency:   *concurrency,
 		ParsedHeaders: parseHeaders(*headers),
 	}
 }

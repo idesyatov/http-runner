@@ -2,23 +2,24 @@ package generator
 
 import (
 	"fmt"
+	"github.com/idesyatov/http-runner/pkg/httpclient"
+	"github.com/idesyatov/http-runner/internal/reporter"
 	"sync"
 	"time"
-	"github.com/idesyatov/http-runner/pkg/httpclient"
 )
 
 // RequestConfig holds the configuration for generating requests.
 type RequestConfig struct {
-	Method        string
-	URL           string
-	Count         int
-	Verbose       bool
-	Concurrency   int
-	ParsedHeaders map[string]string
+	Method        string            // The HTTP method to use
+	URL           string            // The URL to send requests to
+	Count         int               // The number of requests to generate
+	Verbose       bool              // Flag to enable verbose output
+	Concurrency   int               // The level of concurrency for requests
+	ParsedHeaders map[string]string // Headers to include in the requests
 }
 
 type Generator struct {
-	Client *httpclient.Client
+	Client *httpclient.Client // The HTTP client used for sending requests
 }
 
 // NewGenerator creates a new Generator instance with the provided HTTP client.
@@ -31,15 +32,15 @@ func (g *Generator) GenerateRequests(cfg RequestConfig) {
 	var wg sync.WaitGroup
 	var mu sync.Mutex
 
-	var totalResponseTime time.Duration
-	var minResponseTime time.Duration
-	var maxResponseTime time.Duration
-	var successCount int
-	var statusCodes = make(map[int]int) // For storing status codes
+	var totalResponseTime time.Duration // Total response time for all requests
+	var minResponseTime time.Duration   // Minimum response time recorded
+	var maxResponseTime time.Duration   // Maximum response time recorded
+	var successCount int                // Count of successful requests
+	var statusCodes = make(map[int]int) // Map for storing status codes
 
 	startTime := time.Now() // Start of total execution time
 
-	// Create a channel for the semaphore
+	// Create a channel for the semaphore to limit concurrency
 	semaphore := make(chan struct{}, cfg.Concurrency)
 
 	for i := 0; i < cfg.Count; i++ {
@@ -53,7 +54,7 @@ func (g *Generator) GenerateRequests(cfg RequestConfig) {
 			defer func() { <-semaphore }() // Release semaphore
 
 			start := time.Now()
-			// Pass headers to the SendRequest method
+			// Send the request using the HTTP client
 			resp, err := g.Client.SendRequest(cfg.Method, cfg.URL, cfg.ParsedHeaders)
 			responseTime := time.Since(start)
 
@@ -88,31 +89,22 @@ func (g *Generator) GenerateRequests(cfg RequestConfig) {
 	successRate := (float64(successCount) / float64(cfg.Count)) * 100
 	totalDuration := time.Since(startTime) // Total execution time
 
-	// Output statistics
-	fmt.Printf("Request URL: \033[32m%s\033[0m\n", cfg.URL)
-	fmt.Printf("Request Method: %s\n", cfg.Method)
+	// Create a report using the unified Report structure
+	report := reporter.NewReport(reporter.Report{
+		URL:             cfg.URL,
+		Method:          cfg.Method,
+		Count:           cfg.Count,
+		Concurrency:     cfg.Concurrency,
+		TotalDuration:   totalDuration,
+		ParsedHeaders:   cfg.ParsedHeaders,
+		AverageResponse: averageResponseTime,
+		MinResponse:     minResponseTime.Seconds(),
+		MaxResponse:     maxResponseTime.Seconds(),
+		SuccessCount:    successCount,
+		SuccessRate:     successRate,
+		StatusCodes:     statusCodes,
+	})
 
-	// Output headers if they exist
-	if len(cfg.ParsedHeaders) > 0 {
-		fmt.Println("Request Headers:")
-		for key, value := range cfg.ParsedHeaders {
-			fmt.Printf("  - %s: %s\n", key, value)
-		}
-	}
-
-	fmt.Printf("Request Count: %d\n", cfg.Count)
-	fmt.Printf("Request Concurrency: %d\n", cfg.Concurrency)
-	fmt.Printf("Average Response Time: %.6f seconds\n", averageResponseTime)
-	fmt.Printf("Minimum Response Time: %.6f seconds\n", minResponseTime.Seconds())
-	fmt.Printf("Maximum Response Time: %.6f seconds\n", maxResponseTime.Seconds())
-	fmt.Printf("Success Rate: %.2f%%\n", successRate)
-
-	// Output percentage of status codes
-	for code, count := range statusCodes {
-		percentage := (float64(count) / float64(cfg.Count)) * 100 // Corrected
-		fmt.Printf("Status Code %d: %.2f%%\n", code, percentage)
-	}
-
-	// Display total execution time
-	fmt.Printf("Total Duration: %.6f seconds\n", totalDuration.Seconds())
+	// Generate the report
+	report.Generate()
 }
