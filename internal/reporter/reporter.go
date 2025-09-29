@@ -3,6 +3,7 @@ package reporter
 import (
 	"fmt"
 	"time"
+	"github.com/idesyatov/http-runner/pkg/color"
 )
 
 // Report contains all data needed for generating a report.
@@ -28,7 +29,7 @@ func NewReport(report Report) *Report {
 
 // Generate outputs the report to the console.
 func (r *Report) Generate() {
-	fmt.Printf("Request URL: \033[32m%s\033[0m\n", r.URL)
+	fmt.Printf("Request URL: %s\n", color.Colorize(color.Green, r.URL))
 	fmt.Printf("Request Method: %s\n", r.Method)
 
 	// Output headers if they exist
