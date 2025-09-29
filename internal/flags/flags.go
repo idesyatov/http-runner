@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"gopkg.in/yaml.v2"
 )
 
 // Config holds the configuration options for the HTTP client application.
@@ -24,6 +25,21 @@ type Metadata struct {
 	GitURL  string // The URL of the application's Git repository.
 }
 
+// ConfigFile holds the structure of the configuration file.
+type ConfigFile struct {
+	Endpoints []Endpoint `yaml:"endpoints"`
+}
+
+// Endpoint represents a single endpoint configuration.
+type Endpoint struct {
+	URL        string `yaml:"url"`
+	Verbose    bool   `yaml:"verbose"`
+	Method     string `yaml:"method"`
+	Headers    string `yaml:"headers"`
+	Count      int    `yaml:"count"`
+	Concurrency int   `yaml:"concurrency"`
+}
+
 // DefineFlags defines the flags and returns them as a Config structure.
 func DefineFlags() *Config {
 	showVersion := flag.Bool("version", false, "Show version")
@@ -33,8 +49,13 @@ func DefineFlags() *Config {
 	verbose := flag.Bool("verbose", false, "Enable verbose output")
 	concurrency := flag.Int("concurrency", 10, "Number of concurrent requests (default is 10)")
 	headers := flag.String("headers", "", "Comma-separated list of headers in the format key:value")
+	configFile := flag.String("config-file", "", "Path to the configuration file")
 
 	flag.Parse()
+
+	if *configFile != "" {
+		return loadConfigFromFile(*configFile)
+	}
 
 	return &Config{
 		ShowVersion:   *showVersion,
@@ -44,6 +65,39 @@ func DefineFlags() *Config {
 		Verbose:       *verbose,
 		Concurrency:   *concurrency,
 		ParsedHeaders: parseHeaders(*headers),
+	}
+}
+
+// loadConfigFromFile loads configuration from a YAML file.
+func loadConfigFromFile(filePath string) *Config {
+	data, err := os.ReadFile(filePath)
+	if err != nil {
+		fmt.Printf("Error reading config file: %s\n", err)
+		os.Exit(1)
+	}
+
+	var configFile ConfigFile
+	if err := yaml.Unmarshal(data, &configFile); err != nil {
+		fmt.Printf("Error parsing config file: %s\n", err)
+		os.Exit(1)
+	}
+
+	if len(configFile.Endpoints) == 0 {
+		fmt.Println("No endpoints found in the configuration file.")
+		os.Exit(1)
+	}
+
+	// Assuming we take the first endpoint for simplicity
+	endpoint := configFile.Endpoints[0]
+
+	return &Config{
+		ShowVersion:   false, // No version flag in file
+		Method:        endpoint.Method,
+		URL:           endpoint.URL,
+		Count:         endpoint.Count,
+		Verbose:       endpoint.Verbose,
+		Concurrency:   endpoint.Concurrency,
+		ParsedHeaders: parseHeaders(endpoint.Headers),
 	}
 }
 
@@ -75,8 +129,8 @@ func ParseFlags(metadata Metadata) *Config {
 		os.Exit(0)
 	}
 
-	if config.URL == "" {
-		fmt.Println("The URL must be provided. Please use the --help flag for usage instructions.")
+	if config.URL == "" && config.ParsedHeaders == nil {
+		fmt.Println("The URL must be provided or a configuration file must be specified. Please use the --help flag for usage instructions.")
 		os.Exit(1)
 	}
 

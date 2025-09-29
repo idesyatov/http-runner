@@ -1,0 +1,7 @@
+endpoints:
+  - url: 'https://example.com/api'
+    verbose: false
+    method: 'GET'
+    headers: 'Authorization: Bearer your_token, Content-Type: application/json'
+    count: 10
+    concurrency: 20
