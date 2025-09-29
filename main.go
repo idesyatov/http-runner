@@ -10,7 +10,7 @@ import (
 
 func main() {
 	metadata := flags.Metadata{
-		Version: "1.2.0",
+		Version: "1.2.1",
 		GitURL:  "https://github.com/idesyatov/http-runner",
 	}
 
@@ -29,7 +29,7 @@ func main() {
 			Count:         endpoint.Count,
 			Verbose:       endpoint.Verbose,
 			Concurrency:   endpoint.Concurrency,
-			ParsedHeaders: flags.ParseHeaders(endpoint.Headers),
+			ParsedHeaders: endpoint.Headers,
 		}
 
 		// Generate requests based on the configuration
