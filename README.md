@@ -19,7 +19,7 @@
 - `-headers`: Comma-separated list of headers in the format key:value.
 - `-config-file`: Path to the configuration file in YAML format. If this flag is provided, other flags will be ignored.
 
-### Examples
+### Examples cli commands
 ```bash
 # To send a single GET request to a specified URL:
 http-runner -url "https://example.com"
@@ -42,8 +42,25 @@ http-runner -url "https://example.com/api" \
 
 # To load configuration from a YAML file:
 http-runner -config-file "config.yaml"
+```
 
-#TODO
+### Examples config file
+
+```yml
+# TODO array headers
+endpoints:
+  - url: 'https://example.com/api'
+    verbose: false
+    method: 'GET'
+    headers: 'Authorization: Bearer your_token, Content-Type: application/json'
+    count: 10
+    concurrency: 20
+  - url: 'https://example.com/v2/api'
+    verbose: false
+    method: 'POST'
+    headers: 'Authorization: Bearer your_token, Content-Type: application/json, Key: Value'
+    count: 10
+    concurrency: 20
 ```
 
 
