@@ -3,10 +3,13 @@ package generator
 import (
 	"fmt"
 	"github.com/idesyatov/http-runner/pkg/httpclient"
-	"github.com/idesyatov/http-runner/internal/reporter"
 	"sync"
 	"time"
 )
+
+type Generator struct {
+	Client *httpclient.Client // The HTTP client used for sending requests
+}
 
 // RequestConfig holds the configuration for generating requests.
 type RequestConfig struct {
@@ -18,8 +21,19 @@ type RequestConfig struct {
 	ParsedHeaders map[string]string // Headers to include in the requests
 }
 
-type Generator struct {
-	Client *httpclient.Client // The HTTP client used for sending requests
+type GeneratorReport struct {
+	URL             string            // The URL of the request
+	Method          string            // The HTTP method used
+	Count           int               // The number of requests made
+	Concurrency     int               // The level of concurrency
+	TotalDuration   time.Duration     // The total duration of the request execution
+	ParsedHeaders   map[string]string // Headers passed to the request
+	AverageResponse float64           // The average response time
+	MinResponse     float64           // The minimum response time
+	MaxResponse     float64           // The maximum response time
+	SuccessCount    int               // The count of successful requests
+	SuccessRate     float64           // The success rate as a percentage
+	StatusCodes     map[int]int       // A map to store status codes and their counts
 }
 
 // NewGenerator creates a new Generator instance with the provided HTTP client.
@@ -28,7 +42,7 @@ func NewGenerator(client *httpclient.Client) *Generator {
 }
 
 // GenerateRequests generates and sends HTTP requests based on the provided configuration.
-func (g *Generator) GenerateRequests(cfg RequestConfig) {
+func (g *Generator) GenerateRequests(cfg RequestConfig) GeneratorReport {
 	var wg sync.WaitGroup
 	var mu sync.Mutex
 
@@ -90,7 +104,7 @@ func (g *Generator) GenerateRequests(cfg RequestConfig) {
 	totalDuration := time.Since(startTime) // Total execution time
 
 	// Create a report using the unified Report structure
-	report := reporter.NewReport(reporter.Report{
+	return GeneratorReport{
 		URL:             cfg.URL,
 		Method:          cfg.Method,
 		Count:           cfg.Count,
@@ -103,8 +117,5 @@ func (g *Generator) GenerateRequests(cfg RequestConfig) {
 		SuccessCount:    successCount,
 		SuccessRate:     successRate,
 		StatusCodes:     statusCodes,
-	})
-
-	// Generate the report
-	report.Generate()
+	}
 }
