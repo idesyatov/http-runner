@@ -17,6 +17,7 @@
 - `-verbose`: Enable verbose output for detailed logging.
 - `-concurrency`: Number of concurrent requests to send. Default is 10.
 - `-headers`: Comma-separated list of headers in the format key:value.
+- `-config-file`: Path to the configuration file in YAML format. If this flag is provided, other flags will be ignored.
 
 ### Examples
 ```bash
@@ -38,6 +39,9 @@ http-runner -url "https://example.com" -count 50 -concurrency 50
 # To send a single GET request to a specified URL with custom headers:
 http-runner -url "https://example.com/api" \
     -headers "Authorization: Bearer your_token, Content-Type: application/json"
+
+# To load configuration from a YAML file:
+http-runner -config-file "config.yaml"
 
 #TODO
 ```
