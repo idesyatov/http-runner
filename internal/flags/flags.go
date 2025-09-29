@@ -28,12 +28,12 @@ type ConfigFile struct {
 
 // Endpoint represents a single endpoint configuration.
 type Endpoint struct {
-	URL         string `yaml:"url"`
-	Verbose     bool   `yaml:"verbose"`
-	Method      string `yaml:"method"`
-	Headers     string `yaml:"headers"`
-	Count       int    `yaml:"count"`
-	Concurrency int    `yaml:"concurrency"`
+	URL         string            `yaml:"url"`
+	Verbose     bool              `yaml:"verbose"`
+	Method      string            `yaml:"method"`
+	Headers     map[string]string `yaml:"headers"`
+	Count       int               `yaml:"count"`
+	Concurrency int               `yaml:"concurrency"`
 }
 
 // DefineFlags defines the flags and returns them as a Config structure.
@@ -46,28 +46,33 @@ func DefineFlags() *Config {
 	count := flag.Int("count", 1, "Number of requests to send.")
 	verbose := flag.Bool("verbose", false, "Enable verbose output.")
 	concurrency := flag.Int("concurrency", 10, "Number of concurrent requests to send.")
-	headers := flag.String("headers", "", "Comma-separated list of headers in the format key:value.")
 	method := flag.String("method", "GET", "HTTP method to use (e.g., GET, POST). Default is GET.")
+	headers := flag.String("headers", "", "Comma-separated list of headers in the format key:value.")
 
 	flag.Parse()
 
+	var endpoints []Endpoint
+
 	if *configFile != "" {
-		return loadConfigFromFile(*configFile)
+		config := loadConfigFromFile(*configFile)
+		endpoints = config.Endpoints
 	}
 
-	// If config-file is not specified, we use flags.
+	// If the configuration file is not specified, we use flags.
+	if len(endpoints) == 0 {
+		endpoints = append(endpoints, Endpoint{
+			URL:         *url,
+			Verbose:     *verbose,
+			Method:      *method,
+			Headers:     parseHeadersFromCLI(*headers),
+			Count:       *count,
+			Concurrency: *concurrency,
+		})
+	}
+
 	return &Config{
 		ShowVersion: *showVersion,
-		Endpoints: []Endpoint{
-			{
-				URL:         *url,
-				Verbose:     *verbose,
-				Method:      *method,
-				Headers:     *headers,
-				Count:       *count,
-				Concurrency: *concurrency,
-			},
-		},
+		Endpoints:   endpoints,
 	}
 }
 
@@ -97,7 +102,7 @@ func loadConfigFromFile(filePath string) *Config {
 }
 
 // ParseHeaders parses headers from a string and returns them as a map.
-func ParseHeaders(headers string) map[string]string {
+func parseHeadersFromCLI(headers string) map[string]string {
 	parsedHeaders := make(map[string]string)
 	if headers != "" {
 		for _, header := range strings.Split(headers, ",") {
