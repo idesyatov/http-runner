@@ -14,5 +14,7 @@ endpoints:
       Authorization: 'Bearer your_token'
       Content-Type: 'application/json'
       Key: 'Value'
+    data:
+      foo: 'bar'
     count: 10
     concurrency: 20

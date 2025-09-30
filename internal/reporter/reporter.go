@@ -14,6 +14,7 @@ type Report struct {
 	Concurrency     int               // The level of concurrency
 	TotalDuration   time.Duration     // The total duration of the request execution
 	ParsedHeaders   map[string]string // Headers passed to the request
+	ParsedData      map[string]string // Data passed to the request
 	AverageResponse float64           // The average response time
 	MinResponse     float64           // The minimum response time
 	MaxResponse     float64           // The maximum response time
@@ -39,7 +40,13 @@ func (r *Report) Generate() {
 			fmt.Printf("  - %s: %s\n", key, value)
 		}
 	}
-
+	// Output data if they exist
+	if len(r.ParsedData) > 0 {
+		fmt.Println("Request Data:")
+		for key, value := range r.ParsedData {
+			fmt.Printf("  - %s: %s\n", key, value)
+		}
+	}
 	fmt.Printf("Request Count: %d\n", r.Count)
 	fmt.Printf("Request Concurrency: %d\n", r.Concurrency)
 	fmt.Printf("Average Response Time: %.6f seconds\n", r.AverageResponse)

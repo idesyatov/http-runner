@@ -11,7 +11,7 @@ import (
 func main() {
 	metadata := flags.Metadata{
 		GitURL:  "https://github.com/idesyatov/http-runner",
-		Version: "1.2.4",
+		Version: "1.2.5",
 	}
 
 	cfg := flags.ParseFlags(metadata)
@@ -30,6 +30,7 @@ func main() {
 			Verbose:       endpoint.Verbose,
 			Concurrency:   endpoint.Concurrency,
 			ParsedHeaders: endpoint.Headers,
+			Data:          endpoint.Data,
 		}
 
 		// Generate requests based on the configuration
@@ -43,6 +44,7 @@ func main() {
 			Concurrency:     generatorReport.Concurrency,
 			TotalDuration:   generatorReport.TotalDuration,
 			ParsedHeaders:   generatorReport.ParsedHeaders,
+			ParsedData:      generatorReport.ParsedData,
 			AverageResponse: generatorReport.AverageResponse,
 			MinResponse:     generatorReport.MinResponse,
 			MaxResponse:     generatorReport.MaxResponse,

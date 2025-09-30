@@ -1,6 +1,7 @@
 package flags
 
 import (
+	"encoding/json"
 	"flag"
 	"fmt"
 	"os"
@@ -34,6 +35,7 @@ type Endpoint struct {
 	Headers     map[string]string `yaml:"headers"`
 	Count       int               `yaml:"count"`
 	Concurrency int               `yaml:"concurrency"`
+	Data        map[string]string `yaml:"data"`
 }
 
 // DefineFlags defines the flags and returns them as a Config structure.
@@ -48,6 +50,7 @@ func DefineFlags() *Config {
 	concurrency := flag.Int("concurrency", 10, "Number of concurrent requests to send.")
 	method := flag.String("method", "GET", "HTTP method to use (e.g., GET, POST). Default is GET.")
 	headers := flag.String("headers", "", "Comma-separated list of headers in the format key:value.")
+	data := flag.String("data", "", "JSON string of data to send in the request body.")
 
 	flag.Parse()
 
@@ -67,6 +70,7 @@ func DefineFlags() *Config {
 			Headers:     parseHeadersFromCLI(*headers),
 			Count:       *count,
 			Concurrency: *concurrency,
+			Data:        parseDataFromCLI(*data),
 		})
 	}
 
@@ -101,7 +105,7 @@ func loadConfigFromFile(filePath string) *Config {
 	}
 }
 
-// ParseHeaders parses headers from a string and returns them as a map.
+// parseHeadersFromCLI parses headers from a string and returns them as a map.
 func parseHeadersFromCLI(headers string) map[string]string {
 	parsedHeaders := make(map[string]string)
 	if headers != "" {
@@ -117,6 +121,17 @@ func parseHeadersFromCLI(headers string) map[string]string {
 		}
 	}
 	return parsedHeaders
+}
+
+// parseDataFromCLI parses data from a JSON string and returns it as a map.
+func parseDataFromCLI(data string) map[string]string {
+	parsedData := make(map[string]string)
+	if data != "" {
+		if err := json.Unmarshal([]byte(data), &parsedData); err != nil {
+			fmt.Printf("Invalid data format: %s\n", err)
+		}
+	}
+	return parsedData
 }
 
 // ParseFlags combines flag definition and condition checking.
