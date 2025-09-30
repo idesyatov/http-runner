@@ -2,9 +2,9 @@ package generator
 
 import (
 	"fmt"
-	"github.com/idesyatov/http-runner/pkg/httpclient"
 	"sync"
 	"time"
+	"github.com/idesyatov/http-runner/pkg/httpclient"
 )
 
 type Generator struct {
@@ -29,6 +29,7 @@ type GeneratorReport struct {
 	Concurrency     int               // The level of concurrency
 	TotalDuration   time.Duration     // The total duration of the request execution
 	ParsedHeaders   map[string]string // Headers passed to the request
+	ParsedData      map[string]string // Data passed to the request
 	AverageResponse float64           // The average response time
 	MinResponse     float64           // The minimum response time
 	MaxResponse     float64           // The maximum response time
@@ -70,7 +71,7 @@ func (g *Generator) GenerateRequests(cfg RequestConfig) GeneratorReport {
 
 			start := time.Now()
 			// Send the request using the HTTP client
-			resp, err := g.Client.SendRequest(cfg.Method, cfg.URL, cfg.ParsedHeaders)
+			resp, err := g.Client.SendRequest(cfg.Method, cfg.URL, cfg.ParsedHeaders, cfg.Data)
 			responseTime := time.Since(start)
 
 			mu.Lock()
@@ -112,6 +113,7 @@ func (g *Generator) GenerateRequests(cfg RequestConfig) GeneratorReport {
 		Concurrency:     cfg.Concurrency,
 		TotalDuration:   totalDuration,
 		ParsedHeaders:   cfg.ParsedHeaders,
+		ParsedData:      cfg.Data,
 		AverageResponse: averageResponseTime,
 		MinResponse:     minResponseTime.Seconds(),
 		MaxResponse:     maxResponseTime.Seconds(),
