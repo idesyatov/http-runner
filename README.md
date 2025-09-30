@@ -21,6 +21,9 @@
 
 ### Examples cli commands
 ```bash
+# To get information on all flags:
+http-runner -help
+
 # To send a single GET request to a specified URL:
 http-runner -url "https://example.com"
 
@@ -63,6 +66,8 @@ endpoints:
       Authorization: 'Bearer your_token'
       Content-Type: 'application/json'
       Key: 'Value'
+    data:
+      foo: 'bar'
     count: 10
     concurrency: 20
 ```

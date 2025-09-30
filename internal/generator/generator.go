@@ -19,6 +19,7 @@ type RequestConfig struct {
 	Verbose       bool              // Flag to enable verbose output
 	Concurrency   int               // The level of concurrency for requests
 	ParsedHeaders map[string]string // Headers to include in the requests
+	Data          map[string]string // Data to include in the request body
 }
 
 type GeneratorReport struct {
