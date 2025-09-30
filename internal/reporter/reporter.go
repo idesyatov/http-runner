@@ -62,5 +62,5 @@ func (r *Report) Generate() {
 	}
 
 	// Output total execution time
-	fmt.Printf("Total Duration: %.6f seconds\n", r.TotalDuration.Seconds())
+	fmt.Printf("Total Duration: %.6f seconds\n\n", r.TotalDuration.Seconds())
 }
