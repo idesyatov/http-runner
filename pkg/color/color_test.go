@@ -7,9 +7,9 @@ import (
 // TestColorize checks that the Colorize function applies the ANSI escape codes correctly.
 func TestColorize(t *testing.T) {
 	tests := []struct {
-		color   string
-		input   string
-		output  string
+		color  string
+		input  string
+		output string
 	}{
 		{Green, "Hello, World!", "\033[32mHello, World!\033[0m"},
 		{Red, "Error!", "\033[31mError!\033[0m"},

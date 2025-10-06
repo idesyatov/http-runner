@@ -98,20 +98,20 @@ func TestGenerate(t *testing.T) {
 	}
 	fmt.Fprintf(&buf, "Request Count: %d\n", report.Count)
 	fmt.Fprintf(&buf, "Request Concurrency: %d\n", report.Concurrency)
-		fmt.Fprintf(&buf, "Average Response Time: %.6f seconds\n", report.AverageResponse)
-		fmt.Fprintf(&buf, "Minimum Response Time: %.6f seconds\n", report.MinResponse)
-		fmt.Fprintf(&buf, "Maximum Response Time: %.6f seconds\n", report.MaxResponse)
-		fmt.Fprintf(&buf, "Success Count: %d\n", report.SuccessCount)
-		fmt.Fprintf(&buf, "Success Rate: %.2f%%\n", report.SuccessRate)
+	fmt.Fprintf(&buf, "Average Response Time: %.6f seconds\n", report.AverageResponse)
+	fmt.Fprintf(&buf, "Minimum Response Time: %.6f seconds\n", report.MinResponse)
+	fmt.Fprintf(&buf, "Maximum Response Time: %.6f seconds\n", report.MaxResponse)
+	fmt.Fprintf(&buf, "Success Count: %d\n", report.SuccessCount)
+	fmt.Fprintf(&buf, "Success Rate: %.2f%%\n", report.SuccessRate)
 
-		// Output percentage of status codes
-		for code, count := range report.StatusCodes {
-			percentage := (float64(count) / float64(report.Count)) * 100
-			fmt.Fprintf(&buf, "Status Code %d: %.2f%%\n", code, percentage)
-		}
+	// Output percentage of status codes
+	for code, count := range report.StatusCodes {
+		percentage := (float64(count) / float64(report.Count)) * 100
+		fmt.Fprintf(&buf, "Status Code %d: %.2f%%\n", code, percentage)
+	}
 
-		// Total execution time
-		fmt.Fprintf(&buf, "Total Duration: %.6f seconds\n\n", report.TotalDuration.Seconds())
+	// Total execution time
+	fmt.Fprintf(&buf, "Total Duration: %.6f seconds\n\n", report.TotalDuration.Seconds())
 
 	// Check the expected output
 	expectedOutput := "Request URL: " + color.Colorize(color.Green, report.URL) + "\n" +
