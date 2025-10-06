@@ -2,8 +2,8 @@ package reporter
 
 import (
 	"fmt"
-	"time"
 	"github.com/idesyatov/http-runner/pkg/color"
+	"time"
 )
 
 // Report contains all data needed for generating a report.
