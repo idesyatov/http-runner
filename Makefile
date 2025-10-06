@@ -7,7 +7,17 @@ BUILD_DIR = ./bin
 GO_FILES = $(wildcard $(SOURCE_DIR)/*.go)
 
 # Default target
-all: build
+all: format test build
+
+# Format the Go files
+format:
+	@echo "Formatting Go files..."
+	go fmt ./...
+
+# Run the project tests
+test:
+	@echo "Running tests..."
+	go test ./...
 
 # Build the binary
 build: $(GO_FILES)
@@ -29,9 +39,10 @@ clean:
 help:
 	@echo "Makefile for HTTPRunner"
 	@echo "Usage:"
+	@echo "  make format   - Format the Go source files"
 	@echo "  make build    - Build the binary"
 	@echo "  make run ARGS='--method GET --url http://example.com --count 10 --verbose' - Build and run the binary with arguments"
 	@echo "  make clean    - Remove build artifacts"
 	@echo "  make help     - Show this help message"
 
-.PHONY: all build run clean help
+.PHONY: all format test build run clean help

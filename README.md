@@ -19,7 +19,7 @@
 - `-headers`: Comma-separated list of headers in the format key:value.
 - `-config-file`: Path to the configuration file in YAML format. If this flag is provided, other flags will be ignored.
 
-### Examples cli commands
+### Examples CLI commands
 ```bash
 # To get information on all flags:
 http-runner -help
