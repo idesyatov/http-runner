@@ -99,6 +99,13 @@ func loadConfigFromFile(filePath string) *Config {
 		os.Exit(1)
 	}
 
+	// Set the default value for the request method.
+	for i := range configFile.Endpoints {
+		if configFile.Endpoints[i].Method == "" {
+			configFile.Endpoints[i].Method = "GET"
+		}
+	}
+
 	return &Config{
 		ShowVersion: false, // No version flag in file
 		Endpoints:   configFile.Endpoints,

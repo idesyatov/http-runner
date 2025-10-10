@@ -1,3 +1,5 @@
+.vscode/
 bin/
 config.*
 prod_*.*
+*.swp
