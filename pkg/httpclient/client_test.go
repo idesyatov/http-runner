@@ -1,11 +1,11 @@
 package httpclient
 
 import (
-	"time"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 )
 
 // TestNewClient checks that the NewClient function initializes the client with the correct timeout.
@@ -83,4 +83,3 @@ func TestSendRequest(t *testing.T) {
 		t.Errorf("Expected status code %d, got %d", http.StatusOK, resp.StatusCode)
 	}
 }
-
