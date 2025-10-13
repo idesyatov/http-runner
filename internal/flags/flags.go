@@ -151,8 +151,8 @@ func ParseFlags(metadata Metadata) *Config {
 		os.Exit(0)
 	}
 
-	if len(config.Endpoints) == 0 {
-		fmt.Println("No endpoints provided. Please use the --config-file flag for configuration.")
+	if len(config.Endpoints) == 0 || config.Endpoints[0].URL == "" {
+		flag.Usage()
 		os.Exit(1)
 	}
 

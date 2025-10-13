@@ -1,6 +1,7 @@
 package main
 
 import (
+	"os"
 	"testing"
 
 	"github.com/idesyatov/http-runner/internal/config"
@@ -11,13 +12,16 @@ import (
 
 // TestMain checks that the main function runs without errors.
 func TestMain(t *testing.T) {
-	// Setup mock metadata
+	// Run the test with the required command line arguments.
+	os.Args = []string{"cmd", "-url", "https://example"}
+
+	// Setup mock metadata.
 	metadata := flags.Metadata{
 		GitURL:  "https://github.com/idesyatov/http-runner",
 		Version: "0.0.1",
 	}
 
-	// Mock configuration
+	// Mock configuration.
 	cfg := flags.ParseFlags(metadata)
 	cfg.Endpoints = []flags.Endpoint{
 		{
@@ -34,7 +38,7 @@ func TestMain(t *testing.T) {
 	client := httpclient.NewClient(httpCfg.Timeout)
 	gen := generator.NewGenerator(client)
 
-	// Generate request for the first endpoint
+	// Generate request for the first endpoint.
 	requestConfig := generator.RequestConfig{
 		Method:        cfg.Endpoints[0].Method,
 		URL:           cfg.Endpoints[0].URL,
@@ -45,7 +49,7 @@ func TestMain(t *testing.T) {
 		Data:          cfg.Endpoints[0].Data,
 	}
 
-	// Generate requests based on the configuration
+	// Generate requests based on the configuration.
 	generatorReport := gen.GenerateRequests(requestConfig)
 
 	if generatorReport.URL != cfg.Endpoints[0].URL {
