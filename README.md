@@ -17,6 +17,7 @@
 - `-verbose`: Enable verbose output for detailed logging.
 - `-concurrency`: Number of concurrent requests to send. Default is 10.
 - `-headers`: Comma-separated list of headers in the format key:value.
+- `-data`: JSON string of data to send in the request body. This flag is useful for POST requests where data needs to be sent to the server.
 - `-config-file`: Path to the configuration file in YAML format. If this flag is provided, other flags will be ignored.
 
 ### Examples CLI commands
@@ -30,14 +31,21 @@ http-runner -url "https://example.com"
 # To send 100 GET requests to a specified URL:
 http-runner -url "https://example.com" -count 100
 
-# To send 10 POST requests to a specified URL:
-http-runner -method "POST" -url "https://example.com/api" -count 10
+# To send 10 POST requests to a specified URL with JSON data:
+http-runner -method "POST" \
+    -url "https://example.com/api" \
+    -count 10 \
+    -data '{"key1":"value1", "key2":"value2"}'
 
 # To enable verbose output while sending requests:
-http-runner -url "https://example.com" -count 10 -verbose
+http-runner -url "https://example.com" \
+    -count 10 \
+    -verbose
 
 # To send 50 concurrent requests to a specified URL:
-http-runner -url "https://example.com" -count 50 -concurrency 50
+http-runner -url "https://example.com" \
+    -count 50 \
+    -concurrency 50
 
 # To send a single GET request to a specified URL with custom headers:
 http-runner -url "https://example.com/api" \
@@ -45,30 +53,46 @@ http-runner -url "https://example.com/api" \
 
 # To load configuration from a YAML file:
 http-runner -config-file "config.yaml"
+
 ```
 
 ### Examples config file
 
 ```yml
+# Configuration file for http-runner, demonstrating all possible parameters
+
 endpoints:
-  - url: 'https://example.com/api'
-    verbose: false
-    method: 'GET'
-    headers: 
-      Authorization: 'Bearer your_token'
-      Content-Type: 'application/json'
-    count: 10
-    concurrency: 20
-  - url: 'https://example.com/v2/api'
-    verbose: false
-    method: 'POST'
-    headers: 
-      Authorization: 'Bearer your_token'
-      Content-Type: 'application/json'
-    data:
-      key: 'value'
-    count: 10
-    concurrency: 20
+  - url: "https://example.com/api"      # (Required) Target URL for requests.
+    method: "POST"                      # (Optional, default: GET) HTTP method for the request.
+    headers:                            # (Optional) Headers for the request in key:value format.
+      Authorization: "Bearer your_token"
+      Content-Type: "application/json"
+    data:                               # (Optional) JSON string of data to send in the request body.
+      key1: "value1"
+      key2: "value2"
+    count: 5                            # (Optional, default: 1) Number of requests to send.
+    concurrency: 3                      # (Optional, default: 10) Number of concurrent requests.
+    verbose: true                       # (Optional) Enables detailed output for logging.
+
+  - url: "https://example.org"          # (Optional) Second example with a different URL.
+    method: "GET"                       # (Optional) Default GET method.
+    headers:                            # (Optional) Headers for the request.
+      Accept: "application/json"
+    count: 10                           # (Optional, default: 1) Number of requests.
+    concurrency: 5                      # (Optional, default: 10) Number of concurrent requests.
+    verbose: false                      # (Optional) Disables detailed output.
+
+  - url: "https://api.example.com/data" # (Optional) Third example URL.
+    method: "PUT"                       # (Optional) PUT method.
+    headers:                            # (Optional) Headers for the request.
+      Content-Type: "application/x-www-form-urlencoded"
+    data:                               # (Optional) Data for updating.
+      name: "Item"
+      value: "UpdatedValue"
+    count: 1                            # (Optional, default: 1) Only one request.
+    concurrency: 1                      # (Optional, default: 10) One request at a time.
+    verbose: true                       # (Optional) Enables detailed output.
+
 ```
 
 
