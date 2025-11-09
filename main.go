@@ -11,7 +11,7 @@ import (
 func main() {
 	metadata := flags.Metadata{
 		GitURL:  "https://github.com/idesyatov/http-runner",
-		Version: "1.2.9",
+		Version: "1.3.0",
 	}
 
 	cfg := flags.ParseFlags(metadata)
