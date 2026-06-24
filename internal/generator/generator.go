@@ -3,6 +3,7 @@ package generator
 import (
 	"fmt"
 	"github.com/idesyatov/http-runner/pkg/httpclient"
+	"io"
 	"sync"
 	"time"
 )
@@ -74,6 +75,12 @@ func (g *Generator) GenerateRequests(cfg RequestConfig) GeneratorReport {
 			resp, err := g.Client.SendRequest(cfg.Method, cfg.URL, cfg.ParsedHeaders, cfg.Data)
 			responseTime := time.Since(start)
 
+			// Drain and close the body so the connection can be reused (keep-alive).
+			if err == nil {
+				_, _ = io.Copy(io.Discard, resp.Body)
+				_ = resp.Body.Close()
+			}
+
 			mu.Lock()
 			totalResponseTime += responseTime
 			if err == nil {
@@ -101,8 +108,11 @@ func (g *Generator) GenerateRequests(cfg RequestConfig) GeneratorReport {
 	wg.Wait()
 
 	// Statistics output
-	averageResponseTime := totalResponseTime.Seconds() / float64(cfg.Count)
-	successRate := (float64(successCount) / float64(cfg.Count)) * 100
+	var averageResponseTime, successRate float64
+	if cfg.Count > 0 {
+		averageResponseTime = totalResponseTime.Seconds() / float64(cfg.Count)
+		successRate = (float64(successCount) / float64(cfg.Count)) * 100
+	}
 	totalDuration := time.Since(startTime) // Total execution time
 
 	// Create a report using the unified Report structure

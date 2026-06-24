@@ -99,10 +99,16 @@ func loadConfigFromFile(filePath string) *Config {
 		os.Exit(1)
 	}
 
-	// Set the default value for the request method.
+	// Apply default values for omitted fields.
 	for i := range configFile.Endpoints {
 		if configFile.Endpoints[i].Method == "" {
 			configFile.Endpoints[i].Method = "GET"
+		}
+		if configFile.Endpoints[i].Count == 0 {
+			configFile.Endpoints[i].Count = 1
+		}
+		if configFile.Endpoints[i].Concurrency == 0 {
+			configFile.Endpoints[i].Concurrency = 10
 		}
 	}
 

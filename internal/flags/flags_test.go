@@ -46,6 +46,37 @@ endpoints:
 	}
 }
 
+// Test that omitted fields get default values when loaded from file
+func TestLoadConfigFromFile_AppliesDefaults(t *testing.T) {
+	yamlWithoutDefaults := `
+endpoints:
+  - url: "http://example.com"
+`
+	tmpFile, err := os.CreateTemp("", "config.yaml")
+	if err != nil {
+		t.Fatalf("Error creating temporary file: %v", err)
+	}
+	defer os.Remove(tmpFile.Name())
+
+	if _, err = tmpFile.Write([]byte(yamlWithoutDefaults)); err != nil {
+		t.Fatalf("Error writing to temporary file: %v", err)
+	}
+	tmpFile.Close()
+
+	config := loadConfigFromFile(tmpFile.Name())
+
+	ep := config.Endpoints[0]
+	if ep.Method != "GET" {
+		t.Errorf("Expected default Method 'GET', got '%s'", ep.Method)
+	}
+	if ep.Count != 1 {
+		t.Errorf("Expected default Count 1, got %d", ep.Count)
+	}
+	if ep.Concurrency != 10 {
+		t.Errorf("Expected default Concurrency 10, got %d", ep.Concurrency)
+	}
+}
+
 // Header Parsing Test
 func TestParseHeadersFromCLI(t *testing.T) {
 	rawHeaders := "Authorization: Bearer token, Content-Type: application/json"
