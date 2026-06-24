@@ -3,3 +3,5 @@ bin/
 config.*
 prod_*.*
 *.swp
+ROADMAP.md
+dist/

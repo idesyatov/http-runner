@@ -1,5 +1,11 @@
 # HTTPRunner
 
+[![CI](https://github.com/idesyatov/http-runner/actions/workflows/ci.yml/badge.svg)](https://github.com/idesyatov/http-runner/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/idesyatov/http-runner)](https://github.com/idesyatov/http-runner/releases)
+[![Go Version](https://img.shields.io/github/go-mod/go-version/idesyatov/http-runner)](go.mod)
+[![Go Report Card](https://goreportcard.com/badge/github.com/idesyatov/http-runner)](https://goreportcard.com/report/github.com/idesyatov/http-runner)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENCE)
+
 **HTTPRunner** is a powerful tool for load testing HTTP requests, developed in Go. It allows developers and testers to effectively assess the performance of web applications, identify bottlenecks, and ensure stability under high traffic.
 
 ## Usage
@@ -97,10 +103,33 @@ endpoints:
 
 
 ## Installation
-You can install http-runner using the following command:
+
+### Install script (Linux / macOS)
+
+Download the latest release binary and install it to `/usr/local/bin`:
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/idesyatov/http-runner/master/install.sh | sh
+```
+
+The script detects your OS and architecture, fetches the latest release, verifies
+the SHA-256 checksum, and installs the binary. You can override the defaults:
+
+```sh
+# Pin a specific version and/or change the install directory:
+curl -fsSL https://raw.githubusercontent.com/idesyatov/http-runner/master/install.sh | VERSION=v1.4.0 BINDIR=$HOME/.local/bin sh
+```
+
+Prefer to review before running? Download `install.sh`, read it, then run `sh install.sh`.
+
+### Go install
 
 ```sh
 go install github.com/idesyatov/http-runner@latest
 ```
 
-Also download, modify and compile it yourself as you wish
+### Prebuilt binaries
+
+Download an archive for your platform from the
+[Releases](https://github.com/idesyatov/http-runner/releases) page, or build it
+yourself with `make build`.

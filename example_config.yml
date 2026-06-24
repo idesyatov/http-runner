@@ -1,20 +1,32 @@
+# Configuration file for http-runner, demonstrating all possible parameters
 endpoints:
-  - url: 'https://example.com/api'
-    verbose: false
-    method: 'GET'
-    headers: 
-      Authorization: 'Bearer your_token'
-      Content-Type: 'application/json'
-    count: 10
-    concurrency: 20
-  - url: 'https://example.com/v2/api'
-    verbose: false
-    method: 'POST'
-    headers: 
-      Authorization: 'Bearer your_token'
-      Content-Type: 'application/json'
-      Key: 'Value'
-    data:
-      foo: 'bar'
-    count: 10
-    concurrency: 20
+  - url: "https://example.com/api"      # (Required) Target URL for requests.
+    method: "POST"                      # (Optional, default: GET) HTTP method for the request.
+    headers:                            # (Optional) Headers for the request in key:value format.
+      Authorization: "Bearer your_token"
+      Content-Type: "application/json"
+    data:                               # (Optional) JSON string of data to send in the request body.
+      key1: "value1"
+      key2: "value2"
+    count: 5                            # (Optional, default: 1) Number of requests to send.
+    concurrency: 3                      # (Optional, default: 10) Number of concurrent requests.
+    verbose: true                       # (Optional) Enables detailed output for logging.
+
+  - url: "https://example.org"          # (Optional) Second example with a different URL.
+    method: "GET"                       # (Optional) Default GET method.
+    headers:                            # (Optional) Headers for the request.
+      Accept: "application/json"
+    count: 10                           # (Optional, default: 1) Number of requests.
+    concurrency: 5                      # (Optional, default: 10) Number of concurrent requests.
+    verbose: false                      # (Optional) Disables detailed output.
+
+  - url: "https://api.example.com/data" # (Optional) Third example URL.
+    method: "PUT"                       # (Optional) PUT method.
+    headers:                            # (Optional) Headers for the request.
+      Content-Type: "application/x-www-form-urlencoded"
+    data:                               # (Optional) Data for updating.
+      name: "Item"
+      value: "UpdatedValue"
+    count: 1                            # (Optional, default: 1) Only one request.
+    concurrency: 1                      # (Optional, default: 10) One request at a time.
+    verbose: true                       # (Optional) Enables detailed output.

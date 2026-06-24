@@ -8,10 +8,14 @@ import (
 	"github.com/idesyatov/http-runner/pkg/httpclient"
 )
 
+// version is the application version. It is overridden at build time by
+// GoReleaser via -ldflags "-X main.version=...".
+var version = "1.3.0"
+
 func main() {
 	metadata := flags.Metadata{
 		GitURL:  "https://github.com/idesyatov/http-runner",
-		Version: "1.2.8",
+		Version: version,
 	}
 
 	cfg := flags.ParseFlags(metadata)
