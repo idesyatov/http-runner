@@ -10,7 +10,7 @@ import (
 
 // version is the application version. It is overridden at build time by
 // GoReleaser via -ldflags "-X main.version=...".
-var version = "1.4.0"
+var version = "1.5.0"
 
 func main() {
 	metadata := flags.Metadata{
