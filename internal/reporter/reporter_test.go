@@ -3,6 +3,7 @@ package reporter
 import (
 	"bytes"
 	"fmt"
+	"sort"
 	"testing"
 	"time"
 
@@ -104,9 +105,14 @@ func TestGenerate(t *testing.T) {
 	fmt.Fprintf(&buf, "Success Count: %d\n", report.SuccessCount)
 	fmt.Fprintf(&buf, "Success Rate: %.2f%%\n", report.SuccessRate)
 
-	// Output percentage of status codes
-	for code, count := range report.StatusCodes {
-		percentage := (float64(count) / float64(report.Count)) * 100
+	// Output percentage of status codes in ascending order for stable output
+	codes := make([]int, 0, len(report.StatusCodes))
+	for code := range report.StatusCodes {
+		codes = append(codes, code)
+	}
+	sort.Ints(codes)
+	for _, code := range codes {
+		percentage := (float64(report.StatusCodes[code]) / float64(report.Count)) * 100
 		fmt.Fprintf(&buf, "Status Code %d: %.2f%%\n", code, percentage)
 	}
 

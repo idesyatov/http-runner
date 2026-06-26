@@ -3,6 +3,7 @@ package reporter
 import (
 	"fmt"
 	"github.com/idesyatov/http-runner/pkg/color"
+	"sort"
 	"time"
 )
 
@@ -55,9 +56,14 @@ func (r *Report) Generate() {
 	fmt.Printf("Success Count: %d\n", r.SuccessCount)
 	fmt.Printf("Success Rate: %.2f%%\n", r.SuccessRate)
 
-	// Output percentage of status codes
-	for code, count := range r.StatusCodes {
-		percentage := (float64(count) / float64(r.Count)) * 100
+	// Output percentage of status codes in ascending order for stable output
+	codes := make([]int, 0, len(r.StatusCodes))
+	for code := range r.StatusCodes {
+		codes = append(codes, code)
+	}
+	sort.Ints(codes)
+	for _, code := range codes {
+		percentage := (float64(r.StatusCodes[code]) / float64(r.Count)) * 100
 		fmt.Printf("Status Code %d: %.2f%%\n", code, percentage)
 	}
 

@@ -76,4 +76,8 @@ func TestGenerateRequests_Failure(t *testing.T) {
 	if len(report.StatusCodes) != 0 {
 		t.Errorf("expected no status codes, got %d", len(report.StatusCodes))
 	}
+	// Failed requests must not contribute to latency metrics.
+	if report.AverageResponse != 0 {
+		t.Errorf("expected average response 0 when all requests fail, got %f", report.AverageResponse)
+	}
 }

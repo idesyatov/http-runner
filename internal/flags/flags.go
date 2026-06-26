@@ -63,14 +63,24 @@ func DefineFlags() *Config {
 
 	// If the configuration file is not specified, we use flags.
 	if len(endpoints) == 0 {
+		parsedHeaders, err := parseHeadersFromCLI(*headers)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			os.Exit(1)
+		}
+		parsedData, err := parseDataFromCLI(*data)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			os.Exit(1)
+		}
 		endpoints = append(endpoints, Endpoint{
 			URL:         *url,
 			Verbose:     *verbose,
 			Method:      *method,
-			Headers:     parseHeadersFromCLI(*headers),
+			Headers:     parsedHeaders,
 			Count:       *count,
 			Concurrency: *concurrency,
-			Data:        parseDataFromCLI(*data),
+			Data:        parsedData,
 		})
 	}
 
@@ -119,7 +129,7 @@ func loadConfigFromFile(filePath string) *Config {
 }
 
 // parseHeadersFromCLI parses headers from a string and returns them as a map.
-func parseHeadersFromCLI(headers string) map[string]string {
+func parseHeadersFromCLI(headers string) (map[string]string, error) {
 	parsedHeaders := make(map[string]string)
 	if headers != "" {
 		for _, header := range strings.Split(headers, ",") {
@@ -129,22 +139,22 @@ func parseHeadersFromCLI(headers string) map[string]string {
 				value := strings.TrimSpace(parts[1])
 				parsedHeaders[key] = value
 			} else {
-				fmt.Printf("Invalid header format: %s\n", header)
+				return nil, fmt.Errorf("invalid header format: %q (expected key:value)", header)
 			}
 		}
 	}
-	return parsedHeaders
+	return parsedHeaders, nil
 }
 
 // parseDataFromCLI parses data from a JSON string and returns it as a map.
-func parseDataFromCLI(data string) map[string]string {
+func parseDataFromCLI(data string) (map[string]string, error) {
 	parsedData := make(map[string]string)
 	if data != "" {
 		if err := json.Unmarshal([]byte(data), &parsedData); err != nil {
-			fmt.Printf("Invalid data format: %s\n", err)
+			return nil, fmt.Errorf("invalid data format: %w", err)
 		}
 	}
-	return parsedData
+	return parsedData, nil
 }
 
 // ParseFlags combines flag definition and condition checking.

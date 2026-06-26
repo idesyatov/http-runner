@@ -80,7 +80,10 @@ endpoints:
 // Header Parsing Test
 func TestParseHeadersFromCLI(t *testing.T) {
 	rawHeaders := "Authorization: Bearer token, Content-Type: application/json"
-	headers := parseHeadersFromCLI(rawHeaders)
+	headers, err := parseHeadersFromCLI(rawHeaders)
+	if err != nil {
+		t.Fatalf("Expected no error, got %v", err)
+	}
 
 	if len(headers) != 2 {
 		t.Fatalf("Expected 2 headers, got %d", len(headers))
@@ -95,36 +98,41 @@ func TestParseHeadersFromCLI(t *testing.T) {
 	}
 }
 
-// Test for incorrect header formatting
+// Test that incorrect header formatting returns an error instead of being skipped silently
 func TestParseHeadersFromCLI_InvalidFormat(t *testing.T) {
 	rawHeaders := "Authorization: Bearer token, InvalidHeader"
-	headers := parseHeadersFromCLI(rawHeaders)
+	headers, err := parseHeadersFromCLI(rawHeaders)
 
-	if len(headers) != 1 {
-		t.Fatalf("Expected 1 header, got %d", len(headers))
+	if err == nil {
+		t.Fatal("Expected an error for invalid header format, got nil")
 	}
-
-	if headers["Authorization"] != "Bearer token" {
-		t.Errorf("Expected Authorization header to be 'Bearer token', got '%s'", headers["Authorization"])
+	if headers != nil {
+		t.Errorf("Expected nil map on error, got %v", headers)
 	}
 }
 
 // Data parsing test
 func TestParseDataFromCLI_ValidJSON(t *testing.T) {
 	rawData := `{"key": "value"}`
-	data := parseDataFromCLI(rawData)
+	data, err := parseDataFromCLI(rawData)
+	if err != nil {
+		t.Fatalf("Expected no error, got %v", err)
+	}
 
 	if data["key"] != "value" {
 		t.Errorf("Expected key to be 'value', got '%s'", data["key"])
 	}
 }
 
-// Test for invalid data format
+// Test that invalid data format returns an error instead of being ignored silently
 func TestParseDataFromCLI_InvalidJSON(t *testing.T) {
 	rawData := `{"key": "value",}`
-	data := parseDataFromCLI(rawData) // Invalid JSON
+	data, err := parseDataFromCLI(rawData) // Invalid JSON
 
-	if len(data) != 0 {
-		t.Error("Expected empty map for invalid JSON")
+	if err == nil {
+		t.Fatal("Expected an error for invalid JSON, got nil")
+	}
+	if data != nil {
+		t.Errorf("Expected nil map on error, got %v", data)
 	}
 }

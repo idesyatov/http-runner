@@ -82,9 +82,11 @@ func (g *Generator) GenerateRequests(cfg RequestConfig) GeneratorReport {
 			}
 
 			mu.Lock()
-			totalResponseTime += responseTime
+			// Account response time only for successful requests so that
+			// average/min/max describe the same set (latency of successful responses).
 			if err == nil {
 				successCount++
+				totalResponseTime += responseTime
 				statusCodes[resp.StatusCode]++ // Increment the counter for the status code
 				if minResponseTime == 0 || responseTime < minResponseTime {
 					minResponseTime = responseTime
@@ -109,8 +111,10 @@ func (g *Generator) GenerateRequests(cfg RequestConfig) GeneratorReport {
 
 	// Statistics output
 	var averageResponseTime, successRate float64
+	if successCount > 0 {
+		averageResponseTime = totalResponseTime.Seconds() / float64(successCount)
+	}
 	if cfg.Count > 0 {
-		averageResponseTime = totalResponseTime.Seconds() / float64(cfg.Count)
 		successRate = (float64(successCount) / float64(cfg.Count)) * 100
 	}
 	totalDuration := time.Since(startTime) // Total execution time
