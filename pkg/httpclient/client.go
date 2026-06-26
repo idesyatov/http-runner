@@ -2,6 +2,7 @@ package httpclient
 
 import (
 	"bytes"
+	"crypto/tls"
 	"encoding/json"
 	"net/http"
 	"time"
@@ -11,12 +12,23 @@ type Client struct {
 	http.Client
 }
 
-func NewClient(timeout time.Duration) *Client {
-	return &Client{
-		Client: http.Client{
-			Timeout: timeout,
+// NewClient builds an HTTP client with the given per-request timeout. When
+// insecure is true, TLS certificate verification is skipped. When
+// followRedirects is false, redirects are not followed (the last response is
+// returned as-is).
+func NewClient(timeout time.Duration, insecure, followRedirects bool) *Client {
+	c := http.Client{
+		Timeout: timeout,
+		Transport: &http.Transport{
+			TLSClientConfig: &tls.Config{InsecureSkipVerify: insecure},
 		},
 	}
+	if !followRedirects {
+		c.CheckRedirect = func(_ *http.Request, _ []*http.Request) error {
+			return http.ErrUseLastResponse
+		}
+	}
+	return &Client{Client: c}
 }
 
 // SendRequest sends an HTTP request with the specified method, URL, headers, and data.

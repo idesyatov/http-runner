@@ -3,6 +3,7 @@ package flags
 import (
 	"os"
 	"testing"
+	"time"
 )
 
 // Test for loading configuration from file
@@ -74,6 +75,43 @@ endpoints:
 	}
 	if ep.Concurrency != 10 {
 		t.Errorf("Expected default Concurrency 10, got %d", ep.Concurrency)
+	}
+	if time.Duration(ep.Timeout) != 5*time.Second {
+		t.Errorf("Expected default Timeout 5s, got %s", time.Duration(ep.Timeout))
+	}
+}
+
+// Test that timeout/duration are parsed from YAML duration strings
+func TestLoadConfigFromFile_ParsesDurations(t *testing.T) {
+	yamlWithDurations := `
+endpoints:
+  - url: "http://example.com"
+    timeout: "10s"
+    duration: "30s"
+    rate: 50
+`
+	tmpFile, err := os.CreateTemp("", "config.yaml")
+	if err != nil {
+		t.Fatalf("Error creating temporary file: %v", err)
+	}
+	defer os.Remove(tmpFile.Name())
+
+	if _, err = tmpFile.Write([]byte(yamlWithDurations)); err != nil {
+		t.Fatalf("Error writing to temporary file: %v", err)
+	}
+	tmpFile.Close()
+
+	config := loadConfigFromFile(tmpFile.Name())
+	ep := config.Endpoints[0]
+
+	if time.Duration(ep.Timeout) != 10*time.Second {
+		t.Errorf("Expected Timeout 10s, got %s", time.Duration(ep.Timeout))
+	}
+	if time.Duration(ep.Duration) != 30*time.Second {
+		t.Errorf("Expected Duration 30s, got %s", time.Duration(ep.Duration))
+	}
+	if ep.Rate != 50 {
+		t.Errorf("Expected Rate 50, got %d", ep.Rate)
 	}
 }
 

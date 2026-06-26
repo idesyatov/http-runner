@@ -1,10 +1,11 @@
 package main
 
 import (
+	"context"
 	"os"
 	"testing"
+	"time"
 
-	"github.com/idesyatov/http-runner/internal/config"
 	"github.com/idesyatov/http-runner/internal/flags"
 	"github.com/idesyatov/http-runner/internal/generator"
 	"github.com/idesyatov/http-runner/pkg/httpclient"
@@ -34,8 +35,7 @@ func TestMain(t *testing.T) {
 		},
 	}
 
-	httpCfg := config.NewConfig() // Mock configuration can be placed here.
-	client := httpclient.NewClient(httpCfg.Timeout)
+	client := httpclient.NewClient(5*time.Second, false, true)
 	gen := generator.NewGenerator(client)
 
 	// Generate request for the first endpoint.
@@ -50,7 +50,7 @@ func TestMain(t *testing.T) {
 	}
 
 	// Generate requests based on the configuration.
-	generatorReport := gen.GenerateRequests(requestConfig)
+	generatorReport := gen.GenerateRequests(context.Background(), requestConfig)
 
 	if generatorReport.URL != cfg.Endpoints[0].URL {
 		t.Errorf("Expected URL %s, got %s", cfg.Endpoints[0].URL, generatorReport.URL)

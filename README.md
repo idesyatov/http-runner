@@ -16,8 +16,8 @@
 
 - **Load Generation** — create and send a multitude of HTTP requests to simulate real traffic.
 - **Custom Scenarios** — define testing scenarios for various types of requests and parameters via YAML.
-- **Performance Reports** — detailed reports on response times (average, minimum, maximum).
-- **Success Rate Calculation** — the percentage of successful responses, per status code.
+- **Performance Reports** — response times (average, p50/p90/p95/p99, min, max) plus throughput (requests/sec).
+- **Success Rate Calculation** — the percentage of successful (2xx) responses, with a per-status-code breakdown.
 
 ## Quick Start
 
@@ -33,6 +33,9 @@ http-runner -url "https://example.com" -count 100 -concurrency 50
 
 # POST with a JSON body
 http-runner -method POST -url "https://example.com/api" -count 10 -data '{"key":"value"}'
+
+# Run for 30s capped at 50 req/s, machine-readable output
+http-runner -url "https://example.com" -duration 30s -rate 50 -output json
 ```
 
 > Run `http-runner -help` for the full list of flags.
@@ -82,7 +85,13 @@ yourself with `make build`.
 - `-concurrency`: Number of concurrent requests to send. Default is 10.
 - `-headers`: Comma-separated list of headers in the format key:value.
 - `-data`: JSON string of data to send in the request body. This flag is useful for POST requests where data needs to be sent to the server.
-- `-config-file`: Path to the configuration file in YAML format. If this flag is provided, other flags will be ignored.
+- `-timeout`: Per-request timeout (e.g. `10s`, `500ms`). Default is `5s`.
+- `-duration`: Run the load for this wall-clock duration instead of `-count` (e.g. `30s`).
+- `-rate`: Target requests per second. Default is `0` (unlimited).
+- `-output`: Output format: `text` (default) or `json`.
+- `-insecure`: Skip TLS certificate verification.
+- `-redirects`: Follow HTTP redirects. Default is `true` (use `-redirects=false` to disable).
+- `-config-file`: Path to the configuration file in YAML format. If this flag is provided, the per-endpoint flags are ignored (`-output`, `-insecure`, `-redirects` still apply).
 - `-version`: Show the application version and exit.
 
 </details>
@@ -145,6 +154,9 @@ endpoints:
       key2: "value2"
     count: 5                            # (Optional, default: 1) Number of requests to send.
     concurrency: 3                      # (Optional, default: 10) Number of concurrent requests.
+    timeout: "10s"                      # (Optional, default: 5s) Per-request timeout.
+    duration: "30s"                     # (Optional) Run for this wall-clock time instead of count.
+    rate: 50                            # (Optional, default: 0) Target requests per second (0 = unlimited).
     verbose: true                       # (Optional) Enables detailed output for logging.
 
   - url: "https://example.org"          # (Optional) Second example with a different URL.

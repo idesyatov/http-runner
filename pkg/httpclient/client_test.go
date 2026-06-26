@@ -11,7 +11,7 @@ import (
 // TestNewClient checks that the NewClient function initializes the client with the correct timeout.
 func TestNewClient(t *testing.T) {
 	timeout := 5 * time.Second
-	client := NewClient(timeout)
+	client := NewClient(timeout, false, true)
 
 	if client.Timeout != timeout {
 		t.Errorf("Expected timeout %v, got %v", timeout, client.Timeout)
@@ -62,7 +62,7 @@ func TestSendRequest(t *testing.T) {
 	}))
 	defer testServer.Close()
 
-	client := NewClient(5 * time.Second)
+	client := NewClient(5*time.Second, false, true)
 
 	headers := map[string]string{
 		"Authorization": "Bearer token",

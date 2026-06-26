@@ -6,14 +6,41 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"time"
 
 	"gopkg.in/yaml.v2"
 )
 
+const defaultTimeout = 5 * time.Second
+
 // Config holds the configuration options for the HTTP client application.
 type Config struct {
 	ShowVersion bool       // Flag to indicate whether to display the application version.
+	Output      string     // Output format: "text" or "json".
+	Insecure    bool       // Skip TLS certificate verification.
+	Redirects   bool       // Follow HTTP redirects.
 	Endpoints   []Endpoint // List of endpoints to process.
+}
+
+// Duration wraps time.Duration so it can be unmarshalled from a YAML string
+// such as "10s" or "500ms".
+type Duration time.Duration
+
+// UnmarshalYAML parses a duration written as a string (e.g. "10s").
+func (d *Duration) UnmarshalYAML(unmarshal func(interface{}) error) error {
+	var s string
+	if err := unmarshal(&s); err != nil {
+		return err
+	}
+	if s == "" {
+		return nil
+	}
+	v, err := time.ParseDuration(s)
+	if err != nil {
+		return fmt.Errorf("invalid duration %q: %w", s, err)
+	}
+	*d = Duration(v)
+	return nil
 }
 
 // Metadata contains information about the application version and its source repository.
@@ -36,6 +63,9 @@ type Endpoint struct {
 	Count       int               `yaml:"count"`
 	Concurrency int               `yaml:"concurrency"`
 	Data        map[string]string `yaml:"data"`
+	Timeout     Duration          `yaml:"timeout"`  // Per-request timeout (e.g. "10s").
+	Duration    Duration          `yaml:"duration"` // Run for this wall-clock time instead of Count.
+	Rate        int               `yaml:"rate"`     // Target requests per second (0 = unlimited).
 }
 
 // DefineFlags defines the flags and returns them as a Config structure.
@@ -51,8 +81,19 @@ func DefineFlags() *Config {
 	method := flag.String("method", "GET", "HTTP method to use (e.g., GET, POST). Default is GET.")
 	headers := flag.String("headers", "", "Comma-separated list of headers in the format key:value.")
 	data := flag.String("data", "", "JSON string of data to send in the request body.")
+	timeout := flag.String("timeout", defaultTimeout.String(), "Per-request timeout (e.g. 10s, 500ms).")
+	loadDuration := flag.String("duration", "", "Run for this wall-clock duration instead of -count (e.g. 30s).")
+	rate := flag.Int("rate", 0, "Target requests per second (0 = unlimited).")
+	output := flag.String("output", "text", "Output format: text or json.")
+	insecure := flag.Bool("insecure", false, "Skip TLS certificate verification.")
+	redirects := flag.Bool("redirects", true, "Follow HTTP redirects.")
 
 	flag.Parse()
+
+	if *output != "text" && *output != "json" {
+		fmt.Fprintf(os.Stderr, "invalid -output %q (expected text or json)\n", *output)
+		os.Exit(1)
+	}
 
 	var endpoints []Endpoint
 
@@ -73,6 +114,19 @@ func DefineFlags() *Config {
 			fmt.Fprintln(os.Stderr, err)
 			os.Exit(1)
 		}
+		timeoutDur, err := parseDuration(*timeout)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "invalid -timeout: %s\n", err)
+			os.Exit(1)
+		}
+		if timeoutDur == 0 {
+			timeoutDur = defaultTimeout
+		}
+		loadDur, err := parseDuration(*loadDuration)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "invalid -duration: %s\n", err)
+			os.Exit(1)
+		}
 		endpoints = append(endpoints, Endpoint{
 			URL:         *url,
 			Verbose:     *verbose,
@@ -81,13 +135,27 @@ func DefineFlags() *Config {
 			Count:       *count,
 			Concurrency: *concurrency,
 			Data:        parsedData,
+			Timeout:     Duration(timeoutDur),
+			Duration:    Duration(loadDur),
+			Rate:        *rate,
 		})
 	}
 
 	return &Config{
 		ShowVersion: *showVersion,
+		Output:      *output,
+		Insecure:    *insecure,
+		Redirects:   *redirects,
 		Endpoints:   endpoints,
 	}
+}
+
+// parseDuration parses a duration string; an empty string yields 0 (disabled).
+func parseDuration(s string) (time.Duration, error) {
+	if s == "" {
+		return 0, nil
+	}
+	return time.ParseDuration(s)
 }
 
 // loadConfigFromFile loads configuration from a YAML file.
@@ -119,6 +187,9 @@ func loadConfigFromFile(filePath string) *Config {
 		}
 		if configFile.Endpoints[i].Concurrency == 0 {
 			configFile.Endpoints[i].Concurrency = 10
+		}
+		if configFile.Endpoints[i].Timeout == 0 {
+			configFile.Endpoints[i].Timeout = Duration(defaultTimeout)
 		}
 	}
 
