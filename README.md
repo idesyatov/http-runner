@@ -56,7 +56,7 @@ the SHA-256 checksum, and installs the binary. You can override the defaults:
 
 ```sh
 # Pin a specific version and/or change the install directory:
-curl -fsSL https://raw.githubusercontent.com/idesyatov/http-runner/master/install.sh | VERSION=v1.4.0 BINDIR=$HOME/.local/bin sh
+curl -fsSL https://raw.githubusercontent.com/idesyatov/http-runner/master/install.sh | VERSION=v1.6.0 BINDIR=$HOME/.local/bin sh
 ```
 
 Prefer to review before running? Download `install.sh`, read it, then run `sh install.sh`.

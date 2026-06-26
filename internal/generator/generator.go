@@ -146,6 +146,14 @@ func (g *Generator) GenerateRequests(ctx context.Context, cfg RequestConfig) Gen
 	// launch starts a single request, honouring the rate limit and concurrency
 	// semaphore. It returns false if the run should stop (context cancelled).
 	launch := func() bool {
+		// Prioritise cancellation: a plain select below could otherwise pick the
+		// semaphore branch even when ctx is already done (Go chooses randomly
+		// among ready cases).
+		select {
+		case <-ctx.Done():
+			return false
+		default:
+		}
 		if rateCh != nil {
 			select {
 			case <-ctx.Done():
