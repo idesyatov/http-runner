@@ -62,7 +62,7 @@ type Endpoint struct {
 	Headers     map[string]string `yaml:"headers"`
 	Count       int               `yaml:"count"`
 	Concurrency int               `yaml:"concurrency"`
-	Data        map[string]string `yaml:"data"`
+	Data        interface{}       `yaml:"data"`
 	Timeout     Duration          `yaml:"timeout"`  // Per-request timeout (e.g. "10s").
 	Duration    Duration          `yaml:"duration"` // Run for this wall-clock time instead of Count.
 	Rate        int               `yaml:"rate"`     // Target requests per second (0 = unlimited).
@@ -191,6 +191,7 @@ func loadConfigFromFile(filePath string) *Config {
 		if configFile.Endpoints[i].Timeout == 0 {
 			configFile.Endpoints[i].Timeout = Duration(defaultTimeout)
 		}
+		configFile.Endpoints[i].Data = normalizeYAML(configFile.Endpoints[i].Data)
 	}
 
 	return &Config{
@@ -217,15 +218,48 @@ func parseHeadersFromCLI(headers string) (map[string]string, error) {
 	return parsedHeaders, nil
 }
 
-// parseDataFromCLI parses data from a JSON string and returns it as a map.
-func parseDataFromCLI(data string) (map[string]string, error) {
-	parsedData := make(map[string]string)
-	if data != "" {
-		if err := json.Unmarshal([]byte(data), &parsedData); err != nil {
-			return nil, fmt.Errorf("invalid data format: %w", err)
-		}
+// parseDataFromCLI parses the -data value into an arbitrary JSON value. An empty
+// string yields a nil body. A value starting with "@" is treated as a path to a
+// file containing the JSON (curl style); otherwise the value itself is the JSON.
+func parseDataFromCLI(data string) (interface{}, error) {
+	if data == "" {
+		return nil, nil
 	}
-	return parsedData, nil
+	src := []byte(data)
+	if strings.HasPrefix(data, "@") {
+		b, err := os.ReadFile(strings.TrimPrefix(data, "@"))
+		if err != nil {
+			return nil, fmt.Errorf("reading data file: %w", err)
+		}
+		src = b
+	}
+	var v interface{}
+	if err := json.Unmarshal(src, &v); err != nil {
+		return nil, fmt.Errorf("invalid data format: %w", err)
+	}
+	return v, nil
+}
+
+// normalizeYAML converts a value decoded by gopkg.in/yaml.v2 into a JSON-encodable
+// shape: yaml.v2 decodes nested objects as map[interface{}]interface{}, which
+// json.Marshal cannot handle. Keys are stringified and the conversion recurses
+// through nested maps and slices.
+func normalizeYAML(v interface{}) interface{} {
+	switch val := v.(type) {
+	case map[interface{}]interface{}:
+		m := make(map[string]interface{}, len(val))
+		for k, item := range val {
+			m[fmt.Sprintf("%v", k)] = normalizeYAML(item)
+		}
+		return m
+	case []interface{}:
+		for i, item := range val {
+			val[i] = normalizeYAML(item)
+		}
+		return val
+	default:
+		return v
+	}
 }
 
 // ParseFlags combines flag definition and condition checking.

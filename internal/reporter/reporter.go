@@ -17,7 +17,7 @@ type Report struct {
 	TotalDuration   time.Duration     // The total duration of the request execution
 	RequestsPerSec  float64           // Throughput: requests per second over the whole run
 	ParsedHeaders   map[string]string // Headers passed to the request
-	ParsedData      map[string]string // Data passed to the request
+	ParsedData      interface{}       // Data passed to the request (arbitrary JSON)
 	AverageResponse float64           // The average response time
 	P50Response     float64           // The 50th percentile (median) response time
 	P90Response     float64           // The 90th percentile response time
@@ -32,11 +32,6 @@ type Report struct {
 	Errors          map[string]int    // Transport errors grouped by category
 }
 
-// NewReport creates a new report from the given Report structure.
-func NewReport(report Report) *Report {
-	return &report // Return the report structure
-}
-
 // Generate outputs the report to the console.
 func (r *Report) Generate() {
 	fmt.Printf("Request URL: %s\n", color.Colorize(color.Green, r.URL))
@@ -49,11 +44,11 @@ func (r *Report) Generate() {
 			fmt.Printf("  - %s: %s\n", key, value)
 		}
 	}
-	// Output data if they exist
-	if len(r.ParsedData) > 0 {
+	// Output data as JSON if it exists
+	if r.ParsedData != nil {
 		fmt.Println("Request Data:")
-		for key, value := range r.ParsedData {
-			fmt.Printf("  - %s: %s\n", key, value)
+		if b, err := json.MarshalIndent(r.ParsedData, "  ", "  "); err == nil {
+			fmt.Printf("  %s\n", b)
 		}
 	}
 	fmt.Printf("Request Count: %d\n", r.Count)
@@ -107,7 +102,7 @@ type jsonReport struct {
 	TotalDurationSec   float64           `json:"total_duration_sec"`
 	RequestsPerSec     float64           `json:"requests_per_sec"`
 	Headers            map[string]string `json:"headers,omitempty"`
-	Data               map[string]string `json:"data,omitempty"`
+	Data               interface{}       `json:"data,omitempty"`
 	AverageResponseSec float64           `json:"average_response_sec"`
 	P50Sec             float64           `json:"p50_sec"`
 	P90Sec             float64           `json:"p90_sec"`

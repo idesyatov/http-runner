@@ -84,7 +84,7 @@ yourself with `make build`.
 - `-verbose`: Enable verbose output for detailed logging.
 - `-concurrency`: Number of concurrent requests to send. Default is 10.
 - `-headers`: Comma-separated list of headers in the format key:value.
-- `-data`: JSON string of data to send in the request body. This flag is useful for POST requests where data needs to be sent to the server.
+- `-data`: JSON body to send with the request. Accepts any valid JSON (nested objects, arrays, numbers). Pass inline JSON, or `@path/to/file.json` to read the body from a file (curl style).
 - `-timeout`: Per-request timeout (e.g. `10s`, `500ms`). Default is `5s`.
 - `-duration`: Run the load for this wall-clock duration instead of `-count` (e.g. `30s`).
 - `-rate`: Target requests per second. Default is `0` (unlimited).
@@ -114,6 +114,16 @@ http-runner -method "POST" \
     -url "https://example.com/api" \
     -count 10 \
     -data '{"key1":"value1", "key2":"value2"}'
+
+# To send a nested JSON body:
+http-runner -method "POST" \
+    -url "https://example.com/api" \
+    -data '{"user":{"id":1,"roles":["admin","ops"]}}'
+
+# To read the JSON body from a file (curl style):
+http-runner -method "POST" \
+    -url "https://example.com/api" \
+    -data @payload.json
 
 # To enable verbose output while sending requests:
 http-runner -url "https://example.com" \
@@ -149,9 +159,11 @@ endpoints:
     headers:                            # (Optional) Headers for the request in key:value format.
       Authorization: "Bearer your_token"
       Content-Type: "application/json"
-    data:                               # (Optional) JSON string of data to send in the request body.
+    data:                               # (Optional) Request body. Any JSON shape, including nested objects and arrays.
       key1: "value1"
-      key2: "value2"
+      user:
+        id: 1
+        roles: ["admin", "ops"]
     count: 5                            # (Optional, default: 1) Number of requests to send.
     concurrency: 3                      # (Optional, default: 10) Number of concurrent requests.
     timeout: "10s"                      # (Optional, default: 5s) Per-request timeout.
@@ -178,8 +190,6 @@ endpoints:
     concurrency: 1                      # (Optional, default: 10) One request at a time.
     verbose: true                       # (Optional) Enables detailed output.
 ```
-
-> Note: `data` currently supports flat `key: value` pairs only (no nested JSON objects or arrays).
 
 </details>
 

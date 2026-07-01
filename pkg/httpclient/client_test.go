@@ -83,3 +83,51 @@ func TestSendRequest(t *testing.T) {
 		t.Errorf("Expected status code %d, got %d", http.StatusOK, resp.StatusCode)
 	}
 }
+
+// TestSendRequest_NestedBody checks that an arbitrary nested JSON body is sent
+// verbatim (objects, arrays, numbers), not just flat string:string pairs.
+func TestSendRequest_NestedBody(t *testing.T) {
+	testServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var body map[string]interface{}
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			t.Errorf("Failed to decode body: %v", err)
+			http.Error(w, "Invalid body", http.StatusBadRequest)
+			return
+		}
+
+		user, ok := body["user"].(map[string]interface{})
+		if !ok || user["id"] != float64(1) {
+			t.Errorf("Expected body.user.id 1, got %v", body["user"])
+			http.Error(w, "Invalid body content", http.StatusBadRequest)
+			return
+		}
+		roles, ok := user["roles"].([]interface{})
+		if !ok || len(roles) != 2 || roles[0] != "admin" {
+			t.Errorf("Expected body.user.roles [admin ops], got %v", user["roles"])
+			http.Error(w, "Invalid body content", http.StatusBadRequest)
+			return
+		}
+
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer testServer.Close()
+
+	client := NewClient(5*time.Second, false, true)
+
+	data := map[string]interface{}{
+		"user": map[string]interface{}{
+			"id":    1,
+			"roles": []interface{}{"admin", "ops"},
+		},
+	}
+
+	resp, err := client.SendRequest(http.MethodPost, testServer.URL, nil, data)
+	if err != nil {
+		t.Fatalf("Expected no error, got %v", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		t.Errorf("Expected status code %d, got %d", http.StatusOK, resp.StatusCode)
+	}
+}

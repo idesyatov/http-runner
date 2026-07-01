@@ -11,59 +11,6 @@ import (
 	"github.com/idesyatov/http-runner/pkg/color"
 )
 
-// TestNewReport verifies that NewReport initializes a Report correctly.
-func TestNewReport(t *testing.T) {
-	expectedReport := Report{
-		URL:             "https://example.com",
-		Method:          "GET",
-		Count:           10,
-		Concurrency:     5,
-		TotalDuration:   time.Second * 5,
-		ParsedHeaders:   map[string]string{"Authorization": "Bearer token"},
-		ParsedData:      map[string]string{"key": "value"},
-		AverageResponse: 0.5,
-		MinResponse:     0.1,
-		MaxResponse:     1.0,
-		SuccessCount:    8,
-		SuccessRate:     80.0,
-		StatusCodes:     map[int]int{200: 8, 404: 2},
-	}
-
-	report := NewReport(expectedReport)
-
-	// Compare each field individually
-	if report.URL != expectedReport.URL ||
-		report.Method != expectedReport.Method ||
-		report.Count != expectedReport.Count ||
-		report.Concurrency != expectedReport.Concurrency ||
-		report.TotalDuration != expectedReport.TotalDuration ||
-		report.AverageResponse != expectedReport.AverageResponse ||
-		report.MinResponse != expectedReport.MinResponse ||
-		report.MaxResponse != expectedReport.MaxResponse ||
-		report.SuccessCount != expectedReport.SuccessCount ||
-		report.SuccessRate != expectedReport.SuccessRate {
-
-		t.Errorf("Report does not match expected values: got %+v, want %+v", report, expectedReport)
-	}
-
-	// Compare the maps
-	for key, value := range expectedReport.ParsedHeaders {
-		if report.ParsedHeaders[key] != value {
-			t.Errorf("ParsedHeaders[%s] = %s, want %s", key, report.ParsedHeaders[key], value)
-		}
-	}
-	for key, value := range expectedReport.ParsedData {
-		if report.ParsedData[key] != value {
-			t.Errorf("ParsedData[%s] = %s, want %s", key, report.ParsedData[key], value)
-		}
-	}
-	for code, count := range expectedReport.StatusCodes {
-		if report.StatusCodes[code] != count {
-			t.Errorf("StatusCodes[%d] = %d, want %d", code, report.StatusCodes[code], count)
-		}
-	}
-}
-
 // TestGenerate verifies output of the Generate function.
 func TestGenerate(t *testing.T) {
 	var buf bytes.Buffer
@@ -97,10 +44,10 @@ func TestGenerate(t *testing.T) {
 			fmt.Fprintf(&buf, "  - %s: %s\n", key, value)
 		}
 	}
-	if len(report.ParsedData) > 0 {
+	if report.ParsedData != nil {
 		buf.WriteString("Request Data:\n")
-		for key, value := range report.ParsedData {
-			fmt.Fprintf(&buf, "  - %s: %s\n", key, value)
+		if b, err := json.MarshalIndent(report.ParsedData, "  ", "  "); err == nil {
+			fmt.Fprintf(&buf, "  %s\n", b)
 		}
 	}
 	fmt.Fprintf(&buf, "Request Count: %d\n", report.Count)
@@ -136,7 +83,9 @@ func TestGenerate(t *testing.T) {
 		"Request Headers:\n" +
 		"  - Authorization: Bearer token\n" +
 		"Request Data:\n" +
-		"  - key: value\n" +
+		"  {\n" +
+		"    \"key\": \"value\"\n" +
+		"  }\n" +
 		"Request Count: 10\n" +
 		"Request Concurrency: 5\n" +
 		"Requests/sec: 20.00\n" +
@@ -174,6 +123,9 @@ func TestReportJSON(t *testing.T) {
 		StatusCodes:     map[int]int{200: 8, 404: 2},
 		ErrorCount:      1,
 		Errors:          map[string]int{"timeout": 1},
+		ParsedData: map[string]interface{}{
+			"user": map[string]interface{}{"id": 1},
+		},
 	}
 
 	b, err := report.JSON()
@@ -202,5 +154,13 @@ func TestReportJSON(t *testing.T) {
 	errs, ok := out["errors"].(map[string]interface{})
 	if !ok || errs["timeout"] != float64(1) {
 		t.Errorf("expected errors[timeout]=1, got %v", out["errors"])
+	}
+	data, ok := out["data"].(map[string]interface{})
+	if !ok {
+		t.Fatalf("expected data object, got %v", out["data"])
+	}
+	user, ok := data["user"].(map[string]interface{})
+	if !ok || user["id"] != float64(1) {
+		t.Errorf("expected data.user.id=1, got %v", data["user"])
 	}
 }

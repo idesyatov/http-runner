@@ -32,7 +32,7 @@ func NewClient(timeout time.Duration, insecure, followRedirects bool) *Client {
 }
 
 // SendRequest sends an HTTP request with the specified method, URL, headers, and data.
-func (c *Client) SendRequest(method, url string, headers map[string]string, data map[string]string) (*http.Response, error) {
+func (c *Client) SendRequest(method, url string, headers map[string]string, data interface{}) (*http.Response, error) {
 	var body *bytes.Buffer
 
 	// Serialize data to JSON if it's not nil

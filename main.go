@@ -15,7 +15,7 @@ import (
 
 // version is the application version. It is overridden at build time by
 // GoReleaser via -ldflags "-X main.version=...".
-var version = "1.6.0"
+var version = "1.7.0"
 
 func main() {
 	metadata := flags.Metadata{
@@ -52,7 +52,7 @@ func main() {
 		generatorReport := gen.GenerateRequests(ctx, requestConfig)
 
 		// Create a new report using the generated data
-		report := reporter.NewReport(reporter.Report{
+		report := &reporter.Report{
 			URL:             generatorReport.URL,
 			Method:          generatorReport.Method,
 			Count:           generatorReport.Count,
@@ -73,7 +73,7 @@ func main() {
 			StatusCodes:     generatorReport.StatusCodes,
 			ErrorCount:      generatorReport.ErrorCount,
 			Errors:          generatorReport.Errors,
-		})
+		}
 
 		if cfg.Output == "json" {
 			if err := report.GenerateJSON(); err != nil {

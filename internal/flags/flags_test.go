@@ -1,6 +1,7 @@
 package flags
 
 import (
+	"encoding/json"
 	"os"
 	"testing"
 	"time"
@@ -157,8 +158,69 @@ func TestParseDataFromCLI_ValidJSON(t *testing.T) {
 		t.Fatalf("Expected no error, got %v", err)
 	}
 
-	if data["key"] != "value" {
-		t.Errorf("Expected key to be 'value', got '%s'", data["key"])
+	m, ok := data.(map[string]interface{})
+	if !ok {
+		t.Fatalf("Expected map body, got %T", data)
+	}
+	if m["key"] != "value" {
+		t.Errorf("Expected key to be 'value', got '%v'", m["key"])
+	}
+}
+
+// Test that nested JSON objects and arrays survive parsing.
+func TestParseDataFromCLI_NestedJSON(t *testing.T) {
+	rawData := `{"user": {"id": 1, "roles": ["admin", "ops"]}}`
+	data, err := parseDataFromCLI(rawData)
+	if err != nil {
+		t.Fatalf("Expected no error, got %v", err)
+	}
+
+	m := data.(map[string]interface{})
+	user := m["user"].(map[string]interface{})
+	if user["id"] != float64(1) {
+		t.Errorf("Expected user.id 1, got %v", user["id"])
+	}
+	roles := user["roles"].([]interface{})
+	if len(roles) != 2 || roles[0] != "admin" {
+		t.Errorf("Expected roles [admin ops], got %v", roles)
+	}
+}
+
+// Test that an empty -data value yields a nil body (untyped nil).
+func TestParseDataFromCLI_Empty(t *testing.T) {
+	data, err := parseDataFromCLI("")
+	if err != nil {
+		t.Fatalf("Expected no error, got %v", err)
+	}
+	if data != nil {
+		t.Errorf("Expected nil body, got %v", data)
+	}
+}
+
+// Test that -data @file.json reads and parses the file (curl style).
+func TestParseDataFromCLI_File(t *testing.T) {
+	path := t.TempDir() + "/payload.json"
+	if err := os.WriteFile(path, []byte(`{"key": "value"}`), 0o600); err != nil {
+		t.Fatalf("Error writing temp file: %v", err)
+	}
+
+	data, err := parseDataFromCLI("@" + path)
+	if err != nil {
+		t.Fatalf("Expected no error, got %v", err)
+	}
+	if data.(map[string]interface{})["key"] != "value" {
+		t.Errorf("Expected key to be 'value', got %v", data)
+	}
+}
+
+// Test that a missing data file returns an error.
+func TestParseDataFromCLI_MissingFile(t *testing.T) {
+	data, err := parseDataFromCLI("@/no/such/file.json")
+	if err == nil {
+		t.Fatal("Expected an error for missing file, got nil")
+	}
+	if data != nil {
+		t.Errorf("Expected nil body on error, got %v", data)
 	}
 }
 
@@ -172,5 +234,34 @@ func TestParseDataFromCLI_InvalidJSON(t *testing.T) {
 	}
 	if data != nil {
 		t.Errorf("Expected nil map on error, got %v", data)
+	}
+}
+
+// Test that normalizeYAML converts yaml.v2's map[interface{}]interface{} into a
+// JSON-encodable shape, recursing through nested maps and slices.
+func TestNormalizeYAML(t *testing.T) {
+	in := map[interface{}]interface{}{
+		"user": map[interface{}]interface{}{
+			"id":    1,
+			"roles": []interface{}{"admin", map[interface{}]interface{}{"scope": "all"}},
+		},
+	}
+
+	out := normalizeYAML(in)
+	if _, err := json.Marshal(out); err != nil {
+		t.Fatalf("normalized value is not JSON-encodable: %v", err)
+	}
+
+	m, ok := out.(map[string]interface{})
+	if !ok {
+		t.Fatalf("Expected map[string]interface{}, got %T", out)
+	}
+	user := m["user"].(map[string]interface{})
+	if user["id"] != 1 {
+		t.Errorf("Expected user.id 1, got %v", user["id"])
+	}
+	roles := user["roles"].([]interface{})
+	if roles[1].(map[string]interface{})["scope"] != "all" {
+		t.Errorf("Expected nested roles[1].scope 'all', got %v", roles[1])
 	}
 }

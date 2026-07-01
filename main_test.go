@@ -31,7 +31,7 @@ func TestMain(t *testing.T) {
 			Count:       10,
 			Concurrency: 2,
 			Headers:     map[string]string{},
-			Data:        map[string]string{},
+			Data:        nil,
 		},
 	}
 

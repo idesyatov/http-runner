@@ -26,7 +26,7 @@ type RequestConfig struct {
 	Verbose       bool              // Flag to enable verbose output
 	Concurrency   int               // The level of concurrency for requests
 	ParsedHeaders map[string]string // Headers to include in the requests
-	Data          map[string]string // Data to include in the request body
+	Data          interface{}       // Data to include in the request body (arbitrary JSON)
 	Duration      time.Duration     // If >0, run for this wall-clock time instead of Count
 	Rate          int               // Target requests per second (0 = unlimited)
 }
@@ -39,7 +39,7 @@ type GeneratorReport struct {
 	TotalDuration   time.Duration     // The total duration of the request execution
 	RequestsPerSec  float64           // Throughput: requests per second over the whole run
 	ParsedHeaders   map[string]string // Headers passed to the request
-	ParsedData      map[string]string // Data passed to the request
+	ParsedData      interface{}       // Data passed to the request (arbitrary JSON)
 	AverageResponse float64           // The average response time
 	P50Response     float64           // The 50th percentile (median) response time
 	P90Response     float64           // The 90th percentile response time
