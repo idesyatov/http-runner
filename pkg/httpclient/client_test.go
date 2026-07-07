@@ -73,7 +73,7 @@ func TestSendRequest(t *testing.T) {
 	}
 
 	// Send request
-	resp, err := client.SendRequest(http.MethodPost, testServer.URL+"/test", headers, data)
+	resp, _, err := client.SendRequest(http.MethodPost, testServer.URL+"/test", headers, data)
 	if err != nil {
 		t.Errorf("Expected no error, got %v", err)
 	}
@@ -81,6 +81,49 @@ func TestSendRequest(t *testing.T) {
 
 	if resp.StatusCode != http.StatusOK {
 		t.Errorf("Expected status code %d, got %d", http.StatusOK, resp.StatusCode)
+	}
+}
+
+// TestNewClient_HTTP2Enabled checks that HTTP/2 is force-enabled even though a
+// custom TLSClientConfig is set (which would otherwise disable it).
+func TestNewClient_HTTP2Enabled(t *testing.T) {
+	client := NewClient(5*time.Second, false, true, 10)
+	tr, ok := client.Transport.(*http.Transport)
+	if !ok {
+		t.Fatalf("expected *http.Transport, got %T", client.Transport)
+	}
+	if !tr.ForceAttemptHTTP2 {
+		t.Error("expected ForceAttemptHTTP2 to be true")
+	}
+}
+
+// TestSendRequest_Trace checks that connection phase timings are captured: a
+// fresh connection records a positive TTFB and connect time and is not reused.
+func TestSendRequest_Trace(t *testing.T) {
+	testServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer testServer.Close()
+
+	client := NewClient(5*time.Second, false, true, 10)
+
+	resp, trace, err := client.SendRequest(http.MethodGet, testServer.URL, nil, nil)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	defer resp.Body.Close()
+
+	if trace == nil {
+		t.Fatal("expected non-nil trace")
+	}
+	if trace.TTFB <= 0 {
+		t.Errorf("expected positive TTFB, got %v", trace.TTFB)
+	}
+	if trace.Connect <= 0 {
+		t.Errorf("expected positive connect time on a new connection, got %v", trace.Connect)
+	}
+	if trace.Reused {
+		t.Error("expected a fresh connection not to be reused")
 	}
 }
 
@@ -99,7 +142,7 @@ func TestSendRequest_UserContentTypeHonoured(t *testing.T) {
 	headers := map[string]string{"content-type": "text/plain"}
 	data := map[string]string{"key": "value"}
 
-	resp, err := client.SendRequest(http.MethodPost, testServer.URL, headers, data)
+	resp, _, err := client.SendRequest(http.MethodPost, testServer.URL, headers, data)
 	if err != nil {
 		t.Fatalf("Expected no error, got %v", err)
 	}
@@ -147,7 +190,7 @@ func TestSendRequest_NestedBody(t *testing.T) {
 		},
 	}
 
-	resp, err := client.SendRequest(http.MethodPost, testServer.URL, nil, data)
+	resp, _, err := client.SendRequest(http.MethodPost, testServer.URL, nil, data)
 	if err != nil {
 		t.Fatalf("Expected no error, got %v", err)
 	}

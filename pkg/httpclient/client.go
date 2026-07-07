@@ -5,11 +5,24 @@ import (
 	"crypto/tls"
 	"encoding/json"
 	"net/http"
+	"net/http/httptrace"
 	"time"
 )
 
 type Client struct {
 	http.Client
+}
+
+// Trace holds per-request connection phase timings captured via httptrace.
+// Phases that did not occur (for example DNS, connect and TLS on a reused
+// keep-alive connection) stay at zero; Reused reports whether the underlying
+// connection came from the idle pool.
+type Trace struct {
+	DNS     time.Duration // DNS resolution
+	Connect time.Duration // TCP connection establishment
+	TLS     time.Duration // TLS handshake
+	TTFB    time.Duration // request start to first response byte
+	Reused  bool          // connection was reused from the pool
 }
 
 // NewClient builds an HTTP client with the given per-request timeout. When
@@ -25,6 +38,10 @@ type Client struct {
 func NewClient(timeout time.Duration, insecure, followRedirects bool, maxIdleConns int) *Client {
 	transport := &http.Transport{
 		TLSClientConfig: &tls.Config{InsecureSkipVerify: insecure},
+		// Setting TLSClientConfig conservatively disables automatic HTTP/2, so
+		// opt back in explicitly — otherwise HTTPS/2 servers would be measured
+		// over HTTP/1.1 and misrepresent real-world performance.
+		ForceAttemptHTTP2: true,
 	}
 	if maxIdleConns > 0 {
 		transport.MaxIdleConns = maxIdleConns
@@ -42,15 +59,20 @@ func NewClient(timeout time.Duration, insecure, followRedirects bool, maxIdleCon
 	return &Client{Client: c}
 }
 
-// SendRequest sends an HTTP request with the specified method, URL, headers, and data.
-func (c *Client) SendRequest(method, url string, headers map[string]string, data interface{}) (*http.Response, error) {
+// SendRequest sends an HTTP request with the specified method, URL, headers and
+// data. Alongside the response it returns a Trace with the connection phase
+// timings for that request (zero-valued phases mean the step did not happen,
+// e.g. a reused keep-alive connection). The Trace is non-nil whenever err is
+// nil; httptrace hooks only fire for the standard transport, so a custom
+// RoundTripper yields a zero Trace.
+func (c *Client) SendRequest(method, url string, headers map[string]string, data interface{}) (*http.Response, *Trace, error) {
 	var body *bytes.Buffer
 
 	// Serialize data to JSON if it's not nil
 	if data != nil {
 		jsonData, err := json.Marshal(data)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 		body = bytes.NewBuffer(jsonData)
 	} else {
@@ -59,7 +81,7 @@ func (c *Client) SendRequest(method, url string, headers map[string]string, data
 
 	req, err := http.NewRequest(method, url, body)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	// Set headers if provided
@@ -74,5 +96,24 @@ func (c *Client) SendRequest(method, url string, headers map[string]string, data
 		req.Header.Set("Content-Type", "application/json")
 	}
 
-	return c.Do(req)
+	tr := &Trace{}
+	var start, dnsStart, connectStart, tlsStart time.Time
+	trace := &httptrace.ClientTrace{
+		DNSStart:             func(httptrace.DNSStartInfo) { dnsStart = time.Now() },
+		DNSDone:              func(httptrace.DNSDoneInfo) { tr.DNS = time.Since(dnsStart) },
+		ConnectStart:         func(_, _ string) { connectStart = time.Now() },
+		ConnectDone:          func(_, _ string, _ error) { tr.Connect = time.Since(connectStart) },
+		TLSHandshakeStart:    func() { tlsStart = time.Now() },
+		TLSHandshakeDone:     func(tls.ConnectionState, error) { tr.TLS = time.Since(tlsStart) },
+		GotConn:              func(info httptrace.GotConnInfo) { tr.Reused = info.Reused },
+		GotFirstResponseByte: func() { tr.TTFB = time.Since(start) },
+	}
+	req = req.WithContext(httptrace.WithClientTrace(req.Context(), trace))
+
+	start = time.Now()
+	resp, err := c.Do(req)
+	if err != nil {
+		return nil, nil, err
+	}
+	return resp, tr, nil
 }

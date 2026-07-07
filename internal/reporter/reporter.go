@@ -25,6 +25,11 @@ type Report struct {
 	P99Response     float64           // The 99th percentile response time
 	MinResponse     float64           // The minimum response time
 	MaxResponse     float64           // The maximum response time
+	AvgDNS          float64           // Average DNS resolution time over new connections
+	AvgConnect      float64           // Average TCP connect time over new connections
+	AvgTLS          float64           // Average TLS handshake time over new connections
+	AvgTTFB         float64           // Average time to first response byte over completed requests
+	ConnReuseRate   float64           // Percentage of completed requests served over a reused connection
 	SuccessCount    int               // The count of successful (2xx) responses
 	SuccessRate     float64           // The success rate as a percentage
 	StatusCodes     map[int]int       // A map to store status codes and their counts
@@ -61,6 +66,16 @@ func (r *Report) Generate() {
 	fmt.Printf("p99 Response Time: %.6f seconds\n", r.P99Response)
 	fmt.Printf("Minimum Response Time: %.6f seconds\n", r.MinResponse)
 	fmt.Printf("Maximum Response Time: %.6f seconds\n", r.MaxResponse)
+
+	// Connection phase breakdown (averages). DNS/connect/TLS are zero when every
+	// request reused a pooled connection.
+	fmt.Println("Latency breakdown (avg):")
+	fmt.Printf("  DNS:      %.6f seconds\n", r.AvgDNS)
+	fmt.Printf("  Connect:  %.6f seconds\n", r.AvgConnect)
+	fmt.Printf("  TLS:      %.6f seconds\n", r.AvgTLS)
+	fmt.Printf("  TTFB:     %.6f seconds\n", r.AvgTTFB)
+	fmt.Printf("  Conn reuse: %.2f%%\n", r.ConnReuseRate)
+
 	fmt.Printf("Success Count: %d\n", r.SuccessCount)
 	fmt.Printf("Success Rate: %.2f%%\n", r.SuccessRate)
 
@@ -110,6 +125,11 @@ type jsonReport struct {
 	P99Sec             float64           `json:"p99_sec"`
 	MinSec             float64           `json:"min_sec"`
 	MaxSec             float64           `json:"max_sec"`
+	AvgDNSSec          float64           `json:"avg_dns_sec"`
+	AvgConnectSec      float64           `json:"avg_connect_sec"`
+	AvgTLSSec          float64           `json:"avg_tls_sec"`
+	AvgTTFBSec         float64           `json:"avg_ttfb_sec"`
+	ConnReuseRate      float64           `json:"conn_reuse_rate"`
 	SuccessCount       int               `json:"success_count"`
 	SuccessRate        float64           `json:"success_rate"`
 	StatusCodes        map[int]int       `json:"status_codes,omitempty"`
@@ -135,6 +155,11 @@ func (r *Report) JSON() ([]byte, error) {
 		P99Sec:             r.P99Response,
 		MinSec:             r.MinResponse,
 		MaxSec:             r.MaxResponse,
+		AvgDNSSec:          r.AvgDNS,
+		AvgConnectSec:      r.AvgConnect,
+		AvgTLSSec:          r.AvgTLS,
+		AvgTTFBSec:         r.AvgTTFB,
+		ConnReuseRate:      r.ConnReuseRate,
 		SuccessCount:       r.SuccessCount,
 		SuccessRate:        r.SuccessRate,
 		StatusCodes:        r.StatusCodes,

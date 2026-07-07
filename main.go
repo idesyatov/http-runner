@@ -10,12 +10,13 @@ import (
 	"github.com/idesyatov/http-runner/internal/flags"
 	"github.com/idesyatov/http-runner/internal/generator"
 	"github.com/idesyatov/http-runner/internal/reporter"
+	"github.com/idesyatov/http-runner/internal/threshold"
 	"github.com/idesyatov/http-runner/pkg/httpclient"
 )
 
 // version is the application version. It is overridden at build time by
 // GoReleaser via -ldflags "-X main.version=...".
-var version = "1.7.1"
+var version = "1.8.0"
 
 func main() {
 	metadata := flags.Metadata{
@@ -29,6 +30,8 @@ func main() {
 	// finish, and still print the report for what was sent.
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer stop()
+
+	thresholdFailed := false
 
 	// Iterate over all endpoints
 	for _, endpoint := range cfg.Endpoints {
@@ -68,6 +71,11 @@ func main() {
 			P99Response:     generatorReport.P99Response,
 			MinResponse:     generatorReport.MinResponse,
 			MaxResponse:     generatorReport.MaxResponse,
+			AvgDNS:          generatorReport.AvgDNS,
+			AvgConnect:      generatorReport.AvgConnect,
+			AvgTLS:          generatorReport.AvgTLS,
+			AvgTTFB:         generatorReport.AvgTTFB,
+			ConnReuseRate:   generatorReport.ConnReuseRate,
 			SuccessCount:    generatorReport.SuccessCount,
 			SuccessRate:     generatorReport.SuccessRate,
 			StatusCodes:     generatorReport.StatusCodes,
@@ -84,9 +92,42 @@ func main() {
 			report.Generate()
 		}
 
+		// Evaluate CI thresholds against this endpoint's metrics.
+		if len(cfg.Thresholds) > 0 {
+			if fails := threshold.Evaluate(cfg.Thresholds, reportMetrics(report)); len(fails) > 0 {
+				thresholdFailed = true
+				fmt.Fprintf(os.Stderr, "threshold failed for %s:\n", report.URL)
+				for _, f := range fails {
+					fmt.Fprintf(os.Stderr, "  - %s\n", f)
+				}
+			}
+		}
+
 		// Stop processing further endpoints if the run was interrupted.
 		if ctx.Err() != nil {
 			break
 		}
+	}
+
+	if thresholdFailed {
+		os.Exit(1)
+	}
+}
+
+// reportMetrics exposes a report's metrics by the names used in -fail-if
+// conditions (durations in seconds).
+func reportMetrics(r *reporter.Report) map[string]float64 {
+	return map[string]float64{
+		"p50":     r.P50Response,
+		"p90":     r.P90Response,
+		"p95":     r.P95Response,
+		"p99":     r.P99Response,
+		"avg":     r.AverageResponse,
+		"min":     r.MinResponse,
+		"max":     r.MaxResponse,
+		"ttfb":    r.AvgTTFB,
+		"success": r.SuccessRate,
+		"rps":     r.RequestsPerSec,
+		"errors":  float64(r.ErrorCount),
 	}
 }

@@ -47,6 +47,11 @@ type GeneratorReport struct {
 	P99Response     float64           // The 99th percentile response time
 	MinResponse     float64           // The minimum response time
 	MaxResponse     float64           // The maximum response time
+	AvgDNS          float64           // Average DNS resolution time over new connections
+	AvgConnect      float64           // Average TCP connect time over new connections
+	AvgTLS          float64           // Average TLS handshake time over new connections
+	AvgTTFB         float64           // Average time to first response byte over completed requests
+	ConnReuseRate   float64           // Percentage of completed requests served over a reused connection
 	SuccessCount    int               // The count of successful (2xx) responses
 	SuccessRate     float64           // The success rate as a percentage
 	StatusCodes     map[int]int       // A map to store status codes and their counts
@@ -77,6 +82,12 @@ func (g *Generator) GenerateRequests(ctx context.Context, cfg RequestConfig) Gen
 	var responseTimes []time.Duration // Per-request response times (completed only) for percentiles
 	var sentCount int                 // Requests actually launched
 
+	// Connection phase timings (httptrace). DNS/connect/TLS only accrue on new
+	// connections, so they carry their own counters; TTFB and reuse span all
+	// completed requests.
+	var sumDNS, sumConnect, sumTLS, sumTTFB time.Duration
+	var cntDNS, cntConnect, cntTLS, reusedCount int
+
 	startTime := time.Now() // Start of total execution time
 
 	// Create a channel for the semaphore to limit concurrency
@@ -100,7 +111,7 @@ func (g *Generator) GenerateRequests(ctx context.Context, cfg RequestConfig) Gen
 
 		start := time.Now()
 		// Send the request using the HTTP client
-		resp, err := g.Client.SendRequest(cfg.Method, cfg.URL, cfg.ParsedHeaders, cfg.Data)
+		resp, trace, err := g.Client.SendRequest(cfg.Method, cfg.URL, cfg.ParsedHeaders, cfg.Data)
 		responseTime := time.Since(start)
 
 		// Drain and close the body so the connection can be reused (keep-alive).
@@ -126,6 +137,27 @@ func (g *Generator) GenerateRequests(ctx context.Context, cfg RequestConfig) Gen
 			}
 			if resp.StatusCode >= 200 && resp.StatusCode < 300 {
 				successCount++
+			}
+			// Aggregate connection phase timings. DNS/connect/TLS are counted
+			// only when they actually happened (a new connection); TTFB and
+			// reuse apply to every completed request.
+			if trace != nil {
+				sumTTFB += trace.TTFB
+				if trace.Reused {
+					reusedCount++
+				}
+				if trace.DNS > 0 {
+					sumDNS += trace.DNS
+					cntDNS++
+				}
+				if trace.Connect > 0 {
+					sumConnect += trace.Connect
+					cntConnect++
+				}
+				if trace.TLS > 0 {
+					sumTLS += trace.TLS
+					cntTLS++
+				}
 			}
 		} else {
 			errorCount++
@@ -202,6 +234,24 @@ func (g *Generator) GenerateRequests(ctx context.Context, cfg RequestConfig) Gen
 		requestsPerSec = float64(sentCount) / totalDuration.Seconds()
 	}
 
+	// Average connection phase timings (seconds). Each phase divides by the
+	// number of requests where it actually occurred, so reused connections do
+	// not deflate the DNS/connect/TLS averages.
+	avgSeconds := func(sum time.Duration, n int) float64 {
+		if n == 0 {
+			return 0
+		}
+		return sum.Seconds() / float64(n)
+	}
+	avgDNS := avgSeconds(sumDNS, cntDNS)
+	avgConnect := avgSeconds(sumConnect, cntConnect)
+	avgTLS := avgSeconds(sumTLS, cntTLS)
+	avgTTFB := avgSeconds(sumTTFB, completedCount)
+	var connReuseRate float64
+	if completedCount > 0 {
+		connReuseRate = (float64(reusedCount) / float64(completedCount)) * 100
+	}
+
 	sort.Slice(responseTimes, func(i, j int) bool { return responseTimes[i] < responseTimes[j] })
 
 	// Create a report using the unified Report structure
@@ -221,6 +271,11 @@ func (g *Generator) GenerateRequests(ctx context.Context, cfg RequestConfig) Gen
 		P99Response:     percentile(responseTimes, 99),
 		MinResponse:     minResponseTime.Seconds(),
 		MaxResponse:     maxResponseTime.Seconds(),
+		AvgDNS:          avgDNS,
+		AvgConnect:      avgConnect,
+		AvgTLS:          avgTLS,
+		AvgTTFB:         avgTTFB,
+		ConnReuseRate:   connReuseRate,
 		SuccessCount:    successCount,
 		SuccessRate:     successRate,
 		StatusCodes:     statusCodes,

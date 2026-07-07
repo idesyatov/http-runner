@@ -17,6 +17,8 @@
 - **Load Generation** — create and send a multitude of HTTP requests to simulate real traffic.
 - **Custom Scenarios** — define testing scenarios for various types of requests and parameters via YAML.
 - **Performance Reports** — response times (average, p50/p90/p95/p99, min, max) plus throughput (requests/sec).
+- **Latency Breakdown** — average DNS, TCP connect, TLS handshake and time-to-first-byte per request, plus connection-reuse rate (HTTP/2 enabled).
+- **CI Gating** — `-fail-if` exits non-zero when a latency or success-rate budget is violated.
 - **Success Rate Calculation** — the percentage of successful (2xx) responses, with a per-status-code breakdown.
 
 ## Quick Start
@@ -91,7 +93,8 @@ yourself with `make build`.
 - `-output`: Output format: `text` (default) or `json`.
 - `-insecure`: Skip TLS certificate verification.
 - `-redirects`: Follow HTTP redirects. Default is `true` (use `-redirects=false` to disable).
-- `-config-file`: Path to the configuration file in YAML format. If this flag is provided, the per-endpoint flags are ignored (`-output`, `-insecure`, `-redirects` still apply).
+- `-fail-if`: Comma-separated pass/fail thresholds; the process exits non-zero if **any** holds. Handy for gating CI. Metrics: `p50` `p90` `p95` `p99` `avg` `min` `max` `ttfb` (durations, e.g. `500ms`), `success` (percent), `rps` (float), `errors` (count). Operators: `>` `<` `>=` `<=` `==` `!=`. Example: `-fail-if 'p99>500ms,success<99'`.
+- `-config-file`: Path to the configuration file in YAML format. If this flag is provided, the per-endpoint flags are ignored (`-output`, `-insecure`, `-redirects`, `-fail-if` still apply).
 - `-version`: Show the application version and exit.
 
 </details>

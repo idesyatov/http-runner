@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/idesyatov/http-runner/internal/threshold"
 	"gopkg.in/yaml.v2"
 )
 
@@ -15,11 +16,12 @@ const defaultTimeout = 5 * time.Second
 
 // Config holds the configuration options for the HTTP client application.
 type Config struct {
-	ShowVersion bool       // Flag to indicate whether to display the application version.
-	Output      string     // Output format: "text" or "json".
-	Insecure    bool       // Skip TLS certificate verification.
-	Redirects   bool       // Follow HTTP redirects.
-	Endpoints   []Endpoint // List of endpoints to process.
+	ShowVersion bool                  // Flag to indicate whether to display the application version.
+	Output      string                // Output format: "text" or "json".
+	Insecure    bool                  // Skip TLS certificate verification.
+	Redirects   bool                  // Follow HTTP redirects.
+	Thresholds  []threshold.Condition // Pass/fail conditions; a violation exits non-zero.
+	Endpoints   []Endpoint            // List of endpoints to process.
 }
 
 // Duration wraps time.Duration so it can be unmarshalled from a YAML string
@@ -87,11 +89,18 @@ func DefineFlags() *Config {
 	output := flag.String("output", "text", "Output format: text or json.")
 	insecure := flag.Bool("insecure", false, "Skip TLS certificate verification.")
 	redirects := flag.Bool("redirects", true, "Follow HTTP redirects.")
+	failIf := flag.String("fail-if", "", "Comma-separated failure thresholds, e.g. 'p99>500ms,success<99'. Exit non-zero if any holds.")
 
 	flag.Parse()
 
 	if *output != "text" && *output != "json" {
 		fmt.Fprintf(os.Stderr, "invalid -output %q (expected text or json)\n", *output)
+		os.Exit(1)
+	}
+
+	thresholds, err := threshold.Parse(*failIf)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "invalid -fail-if: %s\n", err)
 		os.Exit(1)
 	}
 
@@ -146,6 +155,7 @@ func DefineFlags() *Config {
 		Output:      *output,
 		Insecure:    *insecure,
 		Redirects:   *redirects,
+		Thresholds:  thresholds,
 		Endpoints:   endpoints,
 	}
 }
