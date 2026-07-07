@@ -16,12 +16,23 @@ type Client struct {
 // insecure is true, TLS certificate verification is skipped. When
 // followRedirects is false, redirects are not followed (the last response is
 // returned as-is).
-func NewClient(timeout time.Duration, insecure, followRedirects bool) *Client {
+//
+// maxIdleConns sizes the idle connection pool (both total and per-host) so that
+// keep-alive actually reuses connections under load: net/http defaults to only
+// 2 idle connections per host, which would churn TCP/TLS handshakes at higher
+// concurrency and skew latency/throughput. Values <= 0 fall back to that
+// default.
+func NewClient(timeout time.Duration, insecure, followRedirects bool, maxIdleConns int) *Client {
+	transport := &http.Transport{
+		TLSClientConfig: &tls.Config{InsecureSkipVerify: insecure},
+	}
+	if maxIdleConns > 0 {
+		transport.MaxIdleConns = maxIdleConns
+		transport.MaxIdleConnsPerHost = maxIdleConns
+	}
 	c := http.Client{
-		Timeout: timeout,
-		Transport: &http.Transport{
-			TLSClientConfig: &tls.Config{InsecureSkipVerify: insecure},
-		},
+		Timeout:   timeout,
+		Transport: transport,
 	}
 	if !followRedirects {
 		c.CheckRedirect = func(_ *http.Request, _ []*http.Request) error {
@@ -56,8 +67,10 @@ func (c *Client) SendRequest(method, url string, headers map[string]string, data
 		req.Header.Set(key, value)
 	}
 
-	// Set Content-Type header for JSON data if not already set
-	if data != nil && headers["Content-Type"] == "" {
+	// Set Content-Type header for JSON data if not already set. Use the request
+	// header (canonicalised) rather than the raw map so a user-supplied header
+	// in any case (e.g. "content-type") is honoured and not overwritten.
+	if data != nil && req.Header.Get("Content-Type") == "" {
 		req.Header.Set("Content-Type", "application/json")
 	}
 

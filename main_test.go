@@ -35,7 +35,7 @@ func TestMain(t *testing.T) {
 		},
 	}
 
-	client := httpclient.NewClient(5*time.Second, false, true)
+	client := httpclient.NewClient(5*time.Second, false, true, 10)
 	gen := generator.NewGenerator(client)
 
 	// Generate request for the first endpoint.

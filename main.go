@@ -15,7 +15,7 @@ import (
 
 // version is the application version. It is overridden at build time by
 // GoReleaser via -ldflags "-X main.version=...".
-var version = "1.7.0"
+var version = "1.7.1"
 
 func main() {
 	metadata := flags.Metadata{
@@ -32,7 +32,7 @@ func main() {
 
 	// Iterate over all endpoints
 	for _, endpoint := range cfg.Endpoints {
-		client := httpclient.NewClient(time.Duration(endpoint.Timeout), cfg.Insecure, cfg.Redirects)
+		client := httpclient.NewClient(time.Duration(endpoint.Timeout), cfg.Insecure, cfg.Redirects, endpoint.Concurrency)
 		gen := generator.NewGenerator(client)
 
 		// Create RequestConfig for each endpoint

@@ -11,7 +11,7 @@ import (
 // TestNewClient checks that the NewClient function initializes the client with the correct timeout.
 func TestNewClient(t *testing.T) {
 	timeout := 5 * time.Second
-	client := NewClient(timeout, false, true)
+	client := NewClient(timeout, false, true, 10)
 
 	if client.Timeout != timeout {
 		t.Errorf("Expected timeout %v, got %v", timeout, client.Timeout)
@@ -62,7 +62,7 @@ func TestSendRequest(t *testing.T) {
 	}))
 	defer testServer.Close()
 
-	client := NewClient(5*time.Second, false, true)
+	client := NewClient(5*time.Second, false, true, 10)
 
 	headers := map[string]string{
 		"Authorization": "Bearer token",
@@ -81,6 +81,32 @@ func TestSendRequest(t *testing.T) {
 
 	if resp.StatusCode != http.StatusOK {
 		t.Errorf("Expected status code %d, got %d", http.StatusOK, resp.StatusCode)
+	}
+}
+
+// TestSendRequest_UserContentTypeHonoured checks that a user-supplied
+// Content-Type in any case is not overwritten by the default application/json.
+func TestSendRequest_UserContentTypeHonoured(t *testing.T) {
+	var got string
+	testServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		got = r.Header.Get("Content-Type")
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer testServer.Close()
+
+	client := NewClient(5*time.Second, false, true, 10)
+
+	headers := map[string]string{"content-type": "text/plain"}
+	data := map[string]string{"key": "value"}
+
+	resp, err := client.SendRequest(http.MethodPost, testServer.URL, headers, data)
+	if err != nil {
+		t.Fatalf("Expected no error, got %v", err)
+	}
+	defer resp.Body.Close()
+
+	if got != "text/plain" {
+		t.Errorf("Expected Content-Type text/plain to be honoured, got %q", got)
 	}
 }
 
@@ -112,7 +138,7 @@ func TestSendRequest_NestedBody(t *testing.T) {
 	}))
 	defer testServer.Close()
 
-	client := NewClient(5*time.Second, false, true)
+	client := NewClient(5*time.Second, false, true, 10)
 
 	data := map[string]interface{}{
 		"user": map[string]interface{}{
