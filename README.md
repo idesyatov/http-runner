@@ -142,6 +142,18 @@ http-runner -url "https://example.com" \
 http-runner -url "https://example.com/api" \
     -headers "Authorization: Bearer your_token, Content-Type: application/json"
 
+# To run for 30s capped at 50 req/s with machine-readable output:
+http-runner -url "https://example.com" \
+    -duration 30s \
+    -rate 50 \
+    -output json
+
+# To gate CI on a latency/success budget (exit non-zero if breached):
+http-runner -url "https://example.com" \
+    -count 500 \
+    -concurrency 50 \
+    -fail-if "p99>500ms,success<99"
+
 # To load configuration from a YAML file:
 http-runner -config-file "config.yaml"
 ```
@@ -151,7 +163,7 @@ http-runner -config-file "config.yaml"
 <details>
 <summary><strong>Configuration file</strong> (YAML, all parameters)</summary>
 
-Pass `-config-file path.yml`; when it is set, all other flags are ignored.
+Pass `-config-file path.yml`; the per-endpoint flags are then ignored, while the global flags `-output`, `-insecure`, `-redirects` and `-fail-if` still apply.
 
 ```yml
 # Configuration file for http-runner, demonstrating all possible parameters

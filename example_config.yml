@@ -5,11 +5,16 @@ endpoints:
     headers:                            # (Optional) Headers for the request in key:value format.
       Authorization: "Bearer your_token"
       Content-Type: "application/json"
-    data:                               # (Optional) JSON string of data to send in the request body.
+    data:                               # (Optional) Request body. Any JSON shape, including nested objects and arrays.
       key1: "value1"
-      key2: "value2"
+      user:
+        id: 1
+        roles: ["admin", "ops"]
     count: 5                            # (Optional, default: 1) Number of requests to send.
     concurrency: 3                      # (Optional, default: 10) Number of concurrent requests.
+    timeout: "10s"                      # (Optional, default: 5s) Per-request timeout.
+    duration: "30s"                     # (Optional) Run for this wall-clock time instead of count.
+    rate: 50                            # (Optional, default: 0) Target requests per second (0 = unlimited).
     verbose: true                       # (Optional) Enables detailed output for logging.
 
   - url: "https://example.org"          # (Optional) Second example with a different URL.
