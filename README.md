@@ -16,10 +16,13 @@
 
 - **Load Generation** — create and send a multitude of HTTP requests to simulate real traffic.
 - **Custom Scenarios** — define testing scenarios for various types of requests and parameters via YAML.
-- **Performance Reports** — response times (average, p50/p90/p95/p99, min, max) plus throughput (requests/sec).
+- **Performance Reports** — response times (average, p50/p90/p95/p99, min, max) plus throughput in requests/sec and bytes/sec.
+- **Latency Distribution** — a text histogram of response times so you can see the shape of the distribution, not just percentiles.
 - **Latency Breakdown** — average DNS, TCP connect, TLS handshake and time-to-first-byte per request, plus connection-reuse rate (HTTP/2 enabled).
 - **CI Gating** — `-fail-if` exits non-zero when a latency or success-rate budget is violated.
 - **Success Rate Calculation** — the percentage of successful (2xx) responses, with a per-status-code breakdown.
+- **Config Validation** — invalid values (e.g. `concurrency < 1`, negative `rate`/`duration`) fail fast with a clear message.
+- **Graceful Interrupt** — Ctrl-C finishes in-flight requests and prints a partial report; a second Ctrl-C forces an immediate exit.
 
 ## Quick Start
 

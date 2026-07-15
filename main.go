@@ -16,7 +16,7 @@ import (
 
 // version is the application version. It is overridden at build time by
 // GoReleaser via -ldflags "-X main.version=...".
-var version = "1.8.0"
+var version = "1.9.0"
 
 func main() {
 	metadata := flags.Metadata{
@@ -26,10 +26,19 @@ func main() {
 
 	cfg := flags.ParseFlags(metadata)
 
-	// Cancel the run on Ctrl-C: stop launching new requests, let in-flight ones
-	// finish, and still print the report for what was sent.
-	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
-	defer stop()
+	// Cancel the run on Ctrl-C: the first interrupt stops launching new requests,
+	// lets in-flight ones finish, and still prints the report for what was sent.
+	// A second interrupt forces an immediate exit for an impatient user.
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	sigCh := make(chan os.Signal, 1)
+	signal.Notify(sigCh, os.Interrupt)
+	go func() {
+		<-sigCh
+		cancel()
+		<-sigCh
+		os.Exit(130)
+	}()
 
 	thresholdFailed := false
 
@@ -62,6 +71,8 @@ func main() {
 			Concurrency:     generatorReport.Concurrency,
 			TotalDuration:   generatorReport.TotalDuration,
 			RequestsPerSec:  generatorReport.RequestsPerSec,
+			TotalBytes:      generatorReport.TotalBytes,
+			BytesPerSec:     generatorReport.BytesPerSec,
 			ParsedHeaders:   generatorReport.ParsedHeaders,
 			ParsedData:      generatorReport.ParsedData,
 			AverageResponse: generatorReport.AverageResponse,
@@ -81,6 +92,7 @@ func main() {
 			StatusCodes:     generatorReport.StatusCodes,
 			ErrorCount:      generatorReport.ErrorCount,
 			Errors:          generatorReport.Errors,
+			Histogram:       toReporterBuckets(generatorReport.Histogram),
 		}
 
 		if cfg.Output == "json" {
@@ -112,6 +124,19 @@ func main() {
 	if thresholdFailed {
 		os.Exit(1)
 	}
+}
+
+// toReporterBuckets maps the generator's histogram buckets onto the reporter's
+// bucket type (the two layers are decoupled and copied field by field).
+func toReporterBuckets(in []generator.Bucket) []reporter.Bucket {
+	if in == nil {
+		return nil
+	}
+	out := make([]reporter.Bucket, len(in))
+	for i, b := range in {
+		out[i] = reporter.Bucket{Start: b.Start, End: b.End, Count: b.Count}
+	}
+	return out
 }
 
 // reportMetrics exposes a report's metrics by the names used in -fail-if

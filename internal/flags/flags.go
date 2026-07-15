@@ -150,6 +150,15 @@ func DefineFlags() *Config {
 		})
 	}
 
+	// Validate every endpoint (defaults already applied) so bad values fail fast
+	// with a clear message instead of a silent no-op or a deadlock.
+	for i, ep := range endpoints {
+		if err := validateEndpoint(ep); err != nil {
+			fmt.Fprintf(os.Stderr, "invalid endpoint %d (%s): %s\n", i+1, ep.URL, err)
+			os.Exit(1)
+		}
+	}
+
 	return &Config{
 		ShowVersion: *showVersion,
 		Output:      *output,
@@ -158,6 +167,36 @@ func DefineFlags() *Config {
 		Thresholds:  thresholds,
 		Endpoints:   endpoints,
 	}
+}
+
+// validateEndpoint checks an endpoint's numeric fields after defaults have been
+// applied. It rejects values that would otherwise fail silently or hang:
+// concurrency < 1 sizes the semaphore to a blocking channel (deadlock), count 0
+// without a duration sends nothing, and negative rate/duration/timeout are
+// meaningless.
+func validateEndpoint(e Endpoint) error {
+	if e.Method == "" {
+		return fmt.Errorf("method must not be empty")
+	}
+	if e.Concurrency < 1 {
+		return fmt.Errorf("concurrency must be >= 1, got %d", e.Concurrency)
+	}
+	if e.Count < 0 {
+		return fmt.Errorf("count must be >= 0, got %d", e.Count)
+	}
+	if time.Duration(e.Duration) <= 0 && e.Count < 1 {
+		return fmt.Errorf("count must be >= 1 when duration is not set, got %d", e.Count)
+	}
+	if e.Rate < 0 {
+		return fmt.Errorf("rate must be >= 0, got %d", e.Rate)
+	}
+	if time.Duration(e.Duration) < 0 {
+		return fmt.Errorf("duration must be >= 0, got %s", time.Duration(e.Duration))
+	}
+	if time.Duration(e.Timeout) < 0 {
+		return fmt.Errorf("timeout must be >= 0, got %s", time.Duration(e.Timeout))
+	}
+	return nil
 }
 
 // parseDuration parses a duration string; an empty string yields 0 (disabled).

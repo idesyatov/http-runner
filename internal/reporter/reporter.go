@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/idesyatov/http-runner/pkg/color"
 	"sort"
+	"strings"
 	"time"
 )
 
@@ -16,6 +17,8 @@ type Report struct {
 	Concurrency     int               // The level of concurrency
 	TotalDuration   time.Duration     // The total duration of the request execution
 	RequestsPerSec  float64           // Throughput: requests per second over the whole run
+	TotalBytes      int64             // Total response body bytes read across completed requests
+	BytesPerSec     float64           // Throughput: response body bytes per second over the whole run
 	ParsedHeaders   map[string]string // Headers passed to the request
 	ParsedData      interface{}       // Data passed to the request (arbitrary JSON)
 	AverageResponse float64           // The average response time
@@ -35,6 +38,15 @@ type Report struct {
 	StatusCodes     map[int]int       // A map to store status codes and their counts
 	ErrorCount      int               // The number of requests that failed with a transport error
 	Errors          map[string]int    // Transport errors grouped by category
+	Histogram       []Bucket          // Latency distribution over completed requests
+}
+
+// Bucket is one bar of the latency histogram: [Start, End] seconds and how many
+// completed requests fell in that range.
+type Bucket struct {
+	Start float64 // Lower bound in seconds (inclusive)
+	End   float64 // Upper bound in seconds
+	Count int     // Number of completed requests in this range
 }
 
 // Generate outputs the report to the console.
@@ -59,6 +71,7 @@ func (r *Report) Generate() {
 	fmt.Printf("Request Count: %d\n", r.Count)
 	fmt.Printf("Request Concurrency: %d\n", r.Concurrency)
 	fmt.Printf("Requests/sec: %.2f\n", r.RequestsPerSec)
+	fmt.Printf("Bytes/sec: %.2f (%d total)\n", r.BytesPerSec, r.TotalBytes)
 	fmt.Printf("Average Response Time: %.6f seconds\n", r.AverageResponse)
 	fmt.Printf("p50 Response Time: %.6f seconds\n", r.P50Response)
 	fmt.Printf("p90 Response Time: %.6f seconds\n", r.P90Response)
@@ -103,6 +116,26 @@ func (r *Report) Generate() {
 		}
 	}
 
+	// Latency distribution as a text histogram (hey-style), scaled to the busiest
+	// bucket. Skipped when there were no completed requests.
+	if len(r.Histogram) > 0 {
+		maxCount := 0
+		for _, b := range r.Histogram {
+			if b.Count > maxCount {
+				maxCount = b.Count
+			}
+		}
+		fmt.Println("Latency distribution:")
+		const barWidth = 40
+		for _, b := range r.Histogram {
+			bar := 0
+			if maxCount > 0 {
+				bar = b.Count * barWidth / maxCount
+			}
+			fmt.Printf("  %.4f [%4d] |%s\n", b.Start, b.Count, strings.Repeat("■", bar))
+		}
+	}
+
 	// Output total execution time
 	fmt.Printf("Total Duration: %.6f seconds\n\n", r.TotalDuration.Seconds())
 }
@@ -116,6 +149,8 @@ type jsonReport struct {
 	Concurrency        int               `json:"concurrency"`
 	TotalDurationSec   float64           `json:"total_duration_sec"`
 	RequestsPerSec     float64           `json:"requests_per_sec"`
+	TotalBytes         int64             `json:"total_bytes"`
+	BytesPerSec        float64           `json:"bytes_per_sec"`
 	Headers            map[string]string `json:"headers,omitempty"`
 	Data               interface{}       `json:"data,omitempty"`
 	AverageResponseSec float64           `json:"average_response_sec"`
@@ -135,10 +170,22 @@ type jsonReport struct {
 	StatusCodes        map[int]int       `json:"status_codes,omitempty"`
 	ErrorCount         int               `json:"error_count"`
 	Errors             map[string]int    `json:"errors,omitempty"`
+	Histogram          []jsonBucket      `json:"histogram,omitempty"`
+}
+
+// jsonBucket is the machine-readable shape of a histogram bucket.
+type jsonBucket struct {
+	StartSec float64 `json:"start_sec"`
+	EndSec   float64 `json:"end_sec"`
+	Count    int     `json:"count"`
 }
 
 // JSON returns the report marshalled as indented JSON.
 func (r *Report) JSON() ([]byte, error) {
+	var buckets []jsonBucket
+	for _, b := range r.Histogram {
+		buckets = append(buckets, jsonBucket{StartSec: b.Start, EndSec: b.End, Count: b.Count})
+	}
 	return json.MarshalIndent(jsonReport{
 		URL:                r.URL,
 		Method:             r.Method,
@@ -146,6 +193,8 @@ func (r *Report) JSON() ([]byte, error) {
 		Concurrency:        r.Concurrency,
 		TotalDurationSec:   r.TotalDuration.Seconds(),
 		RequestsPerSec:     r.RequestsPerSec,
+		TotalBytes:         r.TotalBytes,
+		BytesPerSec:        r.BytesPerSec,
 		Headers:            r.ParsedHeaders,
 		Data:               r.ParsedData,
 		AverageResponseSec: r.AverageResponse,
@@ -165,6 +214,7 @@ func (r *Report) JSON() ([]byte, error) {
 		StatusCodes:        r.StatusCodes,
 		ErrorCount:         r.ErrorCount,
 		Errors:             r.Errors,
+		Histogram:          buckets,
 	}, "", "  ")
 }
 

@@ -116,6 +116,43 @@ endpoints:
 	}
 }
 
+// Test that validateEndpoint rejects values that would fail silently or hang,
+// and accepts valid configurations.
+func TestValidateEndpoint(t *testing.T) {
+	valid := Endpoint{URL: "http://x", Method: "GET", Count: 1, Concurrency: 10}
+
+	cases := []struct {
+		name    string
+		mutate  func(e *Endpoint)
+		wantErr bool
+	}{
+		{"valid", func(*Endpoint) {}, false},
+		{"empty method", func(e *Endpoint) { e.Method = "" }, true},
+		{"zero concurrency", func(e *Endpoint) { e.Concurrency = 0 }, true},
+		{"negative concurrency", func(e *Endpoint) { e.Concurrency = -1 }, true},
+		{"negative count", func(e *Endpoint) { e.Count = -1 }, true},
+		{"zero count without duration", func(e *Endpoint) { e.Count = 0 }, true},
+		{"zero count with duration", func(e *Endpoint) { e.Count = 0; e.Duration = Duration(30 * time.Second) }, false},
+		{"negative rate", func(e *Endpoint) { e.Rate = -1 }, true},
+		{"negative duration", func(e *Endpoint) { e.Duration = Duration(-time.Second) }, true},
+		{"negative timeout", func(e *Endpoint) { e.Timeout = Duration(-time.Second) }, true},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			ep := valid
+			tc.mutate(&ep)
+			err := validateEndpoint(ep)
+			if tc.wantErr && err == nil {
+				t.Errorf("expected error, got nil")
+			}
+			if !tc.wantErr && err != nil {
+				t.Errorf("expected no error, got %v", err)
+			}
+		})
+	}
+}
+
 // Header Parsing Test
 func TestParseHeadersFromCLI(t *testing.T) {
 	rawHeaders := "Authorization: Bearer token, Content-Type: application/json"

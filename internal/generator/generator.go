@@ -38,6 +38,8 @@ type GeneratorReport struct {
 	Concurrency     int               // The level of concurrency
 	TotalDuration   time.Duration     // The total duration of the request execution
 	RequestsPerSec  float64           // Throughput: requests per second over the whole run
+	TotalBytes      int64             // Total response body bytes read across completed requests
+	BytesPerSec     float64           // Throughput: response body bytes per second over the whole run
 	ParsedHeaders   map[string]string // Headers passed to the request
 	ParsedData      interface{}       // Data passed to the request (arbitrary JSON)
 	AverageResponse float64           // The average response time
@@ -57,6 +59,15 @@ type GeneratorReport struct {
 	StatusCodes     map[int]int       // A map to store status codes and their counts
 	ErrorCount      int               // The number of requests that failed with a transport error
 	Errors          map[string]int    // Transport errors grouped by category
+	Histogram       []Bucket          // Latency distribution over completed requests
+}
+
+// Bucket is one bar of the latency histogram: [Start, End] seconds and how many
+// completed requests fell in that range.
+type Bucket struct {
+	Start float64 // Lower bound in seconds (inclusive)
+	End   float64 // Upper bound in seconds
+	Count int     // Number of completed requests in this range
 }
 
 // NewGenerator creates a new Generator instance with the provided HTTP client.
@@ -81,6 +92,7 @@ func (g *Generator) GenerateRequests(ctx context.Context, cfg RequestConfig) Gen
 	var errorTypes = make(map[string]int)
 	var responseTimes []time.Duration // Per-request response times (completed only) for percentiles
 	var sentCount int                 // Requests actually launched
+	var totalBytes int64              // Response body bytes read across completed requests
 
 	// Connection phase timings (httptrace). DNS/connect/TLS only accrue on new
 	// connections, so they carry their own counters; TTFB and reuse span all
@@ -115,8 +127,11 @@ func (g *Generator) GenerateRequests(ctx context.Context, cfg RequestConfig) Gen
 		responseTime := time.Since(start)
 
 		// Drain and close the body so the connection can be reused (keep-alive).
+		// io.Copy already reports how many bytes were read, so byte throughput
+		// costs nothing extra.
+		var bodyBytes int64
 		if err == nil {
-			_, _ = io.Copy(io.Discard, resp.Body)
+			bodyBytes, _ = io.Copy(io.Discard, resp.Body)
 			_ = resp.Body.Close()
 		}
 
@@ -127,6 +142,7 @@ func (g *Generator) GenerateRequests(ctx context.Context, cfg RequestConfig) Gen
 		if err == nil {
 			completedCount++
 			totalResponseTime += responseTime
+			totalBytes += bodyBytes
 			responseTimes = append(responseTimes, responseTime)
 			statusCodes[resp.StatusCode]++ // Increment the counter for the status code
 			if minResponseTime == 0 || responseTime < minResponseTime {
@@ -223,7 +239,7 @@ func (g *Generator) GenerateRequests(ctx context.Context, cfg RequestConfig) Gen
 	totalDuration := time.Since(startTime) // Total execution time
 
 	// Statistics output
-	var averageResponseTime, successRate, requestsPerSec float64
+	var averageResponseTime, successRate, requestsPerSec, bytesPerSec float64
 	if completedCount > 0 {
 		averageResponseTime = totalResponseTime.Seconds() / float64(completedCount)
 	}
@@ -232,6 +248,7 @@ func (g *Generator) GenerateRequests(ctx context.Context, cfg RequestConfig) Gen
 	}
 	if totalDuration.Seconds() > 0 {
 		requestsPerSec = float64(sentCount) / totalDuration.Seconds()
+		bytesPerSec = float64(totalBytes) / totalDuration.Seconds()
 	}
 
 	// Average connection phase timings (seconds). Each phase divides by the
@@ -262,6 +279,8 @@ func (g *Generator) GenerateRequests(ctx context.Context, cfg RequestConfig) Gen
 		Concurrency:     cfg.Concurrency,
 		TotalDuration:   totalDuration,
 		RequestsPerSec:  requestsPerSec,
+		TotalBytes:      totalBytes,
+		BytesPerSec:     bytesPerSec,
 		ParsedHeaders:   cfg.ParsedHeaders,
 		ParsedData:      cfg.Data,
 		AverageResponse: averageResponseTime,
@@ -281,7 +300,37 @@ func (g *Generator) GenerateRequests(ctx context.Context, cfg RequestConfig) Gen
 		StatusCodes:     statusCodes,
 		ErrorCount:      errorCount,
 		Errors:          errorTypes,
+		Histogram:       histogram(responseTimes, 10),
 	}
+}
+
+// histogram splits the ascending-sorted response times into `buckets` equal-width
+// ranges between the min and max, counting how many samples fall in each. It
+// returns nil for an empty input, and a single bucket when every sample is equal.
+func histogram(sorted []time.Duration, buckets int) []Bucket {
+	if len(sorted) == 0 || buckets <= 0 {
+		return nil
+	}
+	min := sorted[0].Seconds()
+	max := sorted[len(sorted)-1].Seconds()
+	if max <= min {
+		return []Bucket{{Start: min, End: max, Count: len(sorted)}}
+	}
+
+	width := (max - min) / float64(buckets)
+	res := make([]Bucket, buckets)
+	for i := range res {
+		res[i].Start = min + width*float64(i)
+		res[i].End = min + width*float64(i+1)
+	}
+	for _, d := range sorted {
+		idx := int((d.Seconds() - min) / width)
+		if idx >= buckets {
+			idx = buckets - 1 // the max value lands in the last bucket
+		}
+		res[idx].Count++
+	}
+	return res
 }
 
 // classifyError groups a transport error into a short, human-readable category

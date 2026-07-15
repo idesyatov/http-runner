@@ -116,6 +116,8 @@ func TestReportJSON(t *testing.T) {
 		Concurrency:     5,
 		TotalDuration:   time.Second * 5,
 		RequestsPerSec:  20.0,
+		TotalBytes:      1000,
+		BytesPerSec:     200.0,
 		AverageResponse: 0.5,
 		P95Response:     0.9,
 		SuccessCount:    8,
@@ -123,6 +125,7 @@ func TestReportJSON(t *testing.T) {
 		StatusCodes:     map[int]int{200: 8, 404: 2},
 		ErrorCount:      1,
 		Errors:          map[string]int{"timeout": 1},
+		Histogram:       []Bucket{{Start: 0.1, End: 0.5, Count: 6}, {Start: 0.5, End: 1.0, Count: 2}},
 		ParsedData: map[string]interface{}{
 			"user": map[string]interface{}{"id": 1},
 		},
@@ -143,6 +146,20 @@ func TestReportJSON(t *testing.T) {
 	}
 	if out["requests_per_sec"] != 20.0 {
 		t.Errorf("expected requests_per_sec 20, got %v", out["requests_per_sec"])
+	}
+	if out["bytes_per_sec"] != 200.0 {
+		t.Errorf("expected bytes_per_sec 200, got %v", out["bytes_per_sec"])
+	}
+	if out["total_bytes"] != float64(1000) {
+		t.Errorf("expected total_bytes 1000, got %v", out["total_bytes"])
+	}
+	hist, ok := out["histogram"].([]interface{})
+	if !ok || len(hist) != 2 {
+		t.Fatalf("expected 2 histogram buckets, got %v", out["histogram"])
+	}
+	first := hist[0].(map[string]interface{})
+	if first["count"] != float64(6) || first["start_sec"] != 0.1 {
+		t.Errorf("expected first bucket {start 0.1, count 6}, got %v", first)
 	}
 	if out["total_duration_sec"] != 5.0 {
 		t.Errorf("expected total_duration_sec 5, got %v", out["total_duration_sec"])

@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"net/http"
+	"net/http/httptest"
 	"testing"
 	"time"
 
@@ -123,6 +124,45 @@ func TestGenerateRequests_Failure(t *testing.T) {
 	}
 	if report.Errors["other"] != 5 {
 		t.Errorf("expected 5 errors classified as 'other', got %d", report.Errors["other"])
+	}
+}
+
+// TestGenerateRequests_BytesAndHistogram drives a real server so the response
+// body is actually read, verifying byte throughput and the latency histogram.
+func TestGenerateRequests_BytesAndHistogram(t *testing.T) {
+	body := []byte(`{"ok":true}`)
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		_, _ = w.Write(body)
+	}))
+	defer srv.Close()
+
+	client := httpclient.NewClient(5*time.Second, false, true, 5)
+	gen := generator.NewGenerator(client)
+
+	cfg := generator.RequestConfig{
+		Method:      "GET",
+		URL:         srv.URL,
+		Count:       10,
+		Concurrency: 5,
+	}
+	report := gen.GenerateRequests(context.Background(), cfg)
+
+	wantBytes := int64(len(body) * 10)
+	if report.TotalBytes != wantBytes {
+		t.Errorf("expected total bytes %d, got %d", wantBytes, report.TotalBytes)
+	}
+	if report.BytesPerSec <= 0 {
+		t.Errorf("expected positive bytes/sec, got %f", report.BytesPerSec)
+	}
+	if len(report.Histogram) == 0 {
+		t.Errorf("expected a non-empty latency histogram")
+	}
+	sum := 0
+	for _, b := range report.Histogram {
+		sum += b.Count
+	}
+	if sum != 10 {
+		t.Errorf("expected histogram counts to sum to 10 completed requests, got %d", sum)
 	}
 }
 
